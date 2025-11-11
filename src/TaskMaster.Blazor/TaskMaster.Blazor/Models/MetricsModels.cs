@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace TaskMaster.Blazor.Models;
 
 public class ProjectMetrics

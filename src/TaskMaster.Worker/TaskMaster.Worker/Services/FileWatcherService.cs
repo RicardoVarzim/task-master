@@ -19,7 +19,7 @@ public class FileWatcherService : IDisposable
     private readonly Dictionary<int, FileSystemWatcher> _watchers = new();
     private readonly Dictionary<string, DateTime> _lastChangeTime = new();
     private readonly SemaphoreSlim _syncSemaphore;
-    private readonly Dictionary<int, Task> _activeSyncs = new();
+    private readonly Dictionary<int, System.Threading.Tasks.Task> _activeSyncs = new();
 
     public FileWatcherService(
         ILogger<FileWatcherService> logger,
@@ -180,11 +180,11 @@ public class FileWatcherService : IDisposable
         _logger.LogError(exception, "File watcher error for project {ProjectId}", projectId);
         
         // Attempt to restart monitoring for this project
-        _ = Task.Run(async () =>
+        _ = System.Threading.Tasks.Task.Run(async () =>
         {
             try
             {
-                await Task.Delay(TimeSpan.FromSeconds(5)); // Wait before retry
+                await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(5)); // Wait before retry
                 
                 using var scope = _serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -281,11 +281,11 @@ public class FileWatcherService : IDisposable
         // Limit concurrent syncs
         await _syncSemaphore.WaitAsync();
         
-        var syncTask = Task.Run(async () =>
+        var syncTask = System.Threading.Tasks.Task.Run(async () =>
         {
             try
             {
-                _activeSyncs[projectId] = Task.CompletedTask;
+                _activeSyncs[projectId] = System.Threading.Tasks.Task.CompletedTask;
                 
                 await SyncProjectWithRetryAsync(projectId);
             }
@@ -360,7 +360,7 @@ public class FileWatcherService : IDisposable
                 _logger.LogInformation(
                     "Retrying sync for project {ProjectId} in {DelaySeconds} seconds...",
                     projectId, delaySeconds);
-                await Task.Delay(TimeSpan.FromSeconds(delaySeconds));
+                await System.Threading.Tasks.Task.Delay(TimeSpan.FromSeconds(delaySeconds));
             }
         }
 

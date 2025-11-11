@@ -1,10 +1,11 @@
 @using TaskMaster.Core.Models
+@using TaskStatusModel = TaskMaster.Core.Models.TaskStatus
 
 <span class="badge @GetStatusClass()">@GetStatusText()</span>
 
 @code {
     [Parameter]
-    public TaskStatus Status { get; set; }
+    public TaskStatusModel Status { get; set; }
 
     private string GetStatusClass()
     {

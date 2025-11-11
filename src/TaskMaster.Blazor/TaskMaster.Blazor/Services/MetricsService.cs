@@ -1,4 +1,6 @@
+using System.Net.Http;
 using System.Net.Http.Json;
+using System.Threading.Tasks;
 using TaskMaster.Blazor.Models;
 
 namespace TaskMaster.Blazor.Services;
@@ -16,7 +18,7 @@ public class MetricsService
         _httpClient.BaseAddress = new Uri("http://localhost:5000");
     }
 
-    public async Task<ProjectMetrics?> GetProjectMetricsAsync(int projectId)
+    public async System.Threading.Tasks.Task<ProjectMetrics?> GetProjectMetricsAsync(int projectId)
     {
         try
         {
@@ -28,7 +30,7 @@ public class MetricsService
         }
     }
 
-    public async Task<OverviewMetrics?> GetOverviewMetricsAsync()
+    public async System.Threading.Tasks.Task<OverviewMetrics?> GetOverviewMetricsAsync()
     {
         try
         {
@@ -40,7 +42,7 @@ public class MetricsService
         }
     }
 
-    public async Task<TeamMetrics?> GetTeamMetricsAsync(int teamId)
+    public async System.Threading.Tasks.Task<TeamMetrics?> GetTeamMetricsAsync(int teamId)
     {
         try
         {

@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 using TaskMaster.API.Controllers;
 using TaskMaster.Core.Data;
 using TaskMaster.Core.Models;
@@ -28,7 +29,7 @@ public class ProjectsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetProjects_ReturnsAllProjects()
+    public async System.Threading.Tasks.Task GetProjects_ReturnsAllProjects()
     {
         // Arrange
         var project = new Project
@@ -53,7 +54,7 @@ public class ProjectsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetProject_WithValidId_ReturnsProject()
+    public async System.Threading.Tasks.Task GetProject_WithValidId_ReturnsProject()
     {
         // Arrange
         var project = new Project
@@ -78,7 +79,7 @@ public class ProjectsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetProject_WithInvalidId_ReturnsNotFound()
+    public async System.Threading.Tasks.Task GetProject_WithInvalidId_ReturnsNotFound()
     {
         // Act
         var result = await _controller.GetProject(999);
@@ -88,7 +89,7 @@ public class ProjectsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateProject_WithValidPath_CreatesProject()
+    public async System.Threading.Tasks.Task CreateProject_WithValidPath_CreatesProject()
     {
         // Arrange
         var request = new CreateProjectRequest { Path = _testProjectPath };
@@ -105,7 +106,7 @@ public class ProjectsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateProject_WithInvalidPath_ReturnsBadRequest()
+    public async System.Threading.Tasks.Task CreateProject_WithInvalidPath_ReturnsBadRequest()
     {
         // Arrange
         var request = new CreateProjectRequest { Path = "C:\\NonExistent\\Path" };
@@ -118,7 +119,7 @@ public class ProjectsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task CreateProject_WithDuplicatePath_ReturnsConflict()
+    public async System.Threading.Tasks.Task CreateProject_WithDuplicatePath_ReturnsConflict()
     {
         // Arrange
         var project = new Project
@@ -141,7 +142,7 @@ public class ProjectsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task DeleteProject_WithValidId_DeletesProject()
+    public async System.Threading.Tasks.Task DeleteProject_WithValidId_DeletesProject()
     {
         // Arrange
         var project = new Project
@@ -165,7 +166,7 @@ public class ProjectsControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task DeleteProject_WithInvalidId_ReturnsNotFound()
+    public async System.Threading.Tasks.Task DeleteProject_WithInvalidId_ReturnsNotFound()
     {
         // Act
         var result = await _controller.DeleteProject(999);

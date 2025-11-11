@@ -51,14 +51,14 @@
         <div class="row mb-4">
             <div class="col-md-3">
                 <StatCard Title="Total Tasks" 
-                          Value="@overviewMetrics?.TotalTasks.ToString() ?? "0""
+                          Value="@GetTotalTasksValue()"
                           Icon="📋"
                           IconColor="primary" />
             </div>
             <div class="col-md-3">
                 <StatCard Title="Completed" 
-                          Value="@overviewMetrics?.CompletedTasks.ToString() ?? "0""
-                          Subtitle="@GetCompletionRate()% completion rate"
+                          Value="@GetCompletedTasksValue()"
+                          Subtitle="@GetCompletionRateSubtitle()"
                           Icon="✅"
                           IconColor="success"
                           ShowProgress="true"
@@ -68,13 +68,13 @@
             </div>
             <div class="col-md-3">
                 <StatCard Title="In Progress" 
-                          Value="@overviewMetrics?.InProgressTasks.ToString() ?? "0""
+                          Value="@GetInProgressTasksValue()"
                           Icon="🔄"
                           IconColor="info" />
             </div>
             <div class="col-md-3">
                 <StatCard Title="Blocked" 
-                          Value="@overviewMetrics?.BlockedTasks.ToString() ?? "0""
+                          Value="@GetBlockedTasksValue()"
                           Icon="🚧"
                           IconColor="danger" />
             </div>
@@ -327,7 +327,7 @@
     private bool isLoading = true;
     private bool isRefreshing = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async System.Threading.Tasks.Task OnInitializedAsync()
     {
         HttpClient.BaseAddress = new Uri("http://localhost:5000");
         await LoadDashboardData();
@@ -352,12 +352,12 @@
         });
     }
 
-    private async Task LoadDashboardData()
+    private async System.Threading.Tasks.Task LoadDashboardData()
     {
         isLoading = true;
         try
         {
-            await Task.WhenAll(
+            await System.Threading.Tasks.Task.WhenAll(
                 LoadProjects(),
                 LoadTasks(),
                 LoadMetrics()
@@ -375,7 +375,7 @@
         }
     }
 
-    private async Task LoadProjects()
+    private async System.Threading.Tasks.Task LoadProjects()
     {
         try
         {
@@ -388,7 +388,7 @@
         }
     }
 
-    private async Task LoadTasks()
+    private async System.Threading.Tasks.Task LoadTasks()
     {
         try
         {
@@ -400,7 +400,7 @@
         }
     }
 
-    private async Task LoadMetrics()
+    private async System.Threading.Tasks.Task LoadMetrics()
     {
         try
         {
@@ -452,12 +452,18 @@
         return Math.Round(overviewMetrics.OverallCompletionRate, 1).ToString();
     }
 
+    private string GetTotalTasksValue() => overviewMetrics?.TotalTasks.ToString() ?? "0";
+    private string GetCompletedTasksValue() => overviewMetrics?.CompletedTasks.ToString() ?? "0";
+    private string GetInProgressTasksValue() => overviewMetrics?.InProgressTasks.ToString() ?? "0";
+    private string GetBlockedTasksValue() => overviewMetrics?.BlockedTasks.ToString() ?? "0";
+    private string GetCompletionRateSubtitle() => $"{GetCompletionRate()}% completion rate";
+
     private TaskPriority? GetPriorityFromString(string priorityStr)
     {
         return Enum.TryParse<TaskPriority>(priorityStr, true, out var priority) ? priority : null;
     }
 
-    private async Task HandleTaskClick(TaskModel task)
+    private async System.Threading.Tasks.Task HandleTaskClick(TaskModel task)
     {
         var fullTask = await TaskService.GetTaskAsync(task.Id);
         selectedTask = fullTask;
@@ -468,7 +474,7 @@
         selectedTask = null;
     }
 
-    private async Task HandleToggleComplete((TaskModel Task, bool IsCompleted) args)
+    private async System.Threading.Tasks.Task HandleToggleComplete((TaskModel Task, bool IsCompleted) args)
     {
         try
         {
@@ -508,13 +514,13 @@
         Navigation.NavigateTo($"/tasks?projectId={projectId}");
     }
 
-    private async Task RefreshDashboard()
+    private async System.Threading.Tasks.Task RefreshDashboard()
     {
         isRefreshing = true;
         try
         {
             await TaskService.SyncAllProjectsAsync();
-            await Task.Delay(1000);
+            await System.Threading.Tasks.Task.Delay(1000);
             await LoadDashboardData();
         }
         catch (Exception ex)

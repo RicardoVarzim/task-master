@@ -22,28 +22,94 @@ jobs:
       with:
         dotnet-version: '8.0.x'
     
-    - name: Install Windows SDK
-      uses: microsoft/setup-msbuild@v1.1
-      with:
-        msbuild-architecture: x64
-    
-    - name: Setup Windows SDK Path
+    - name: Verify Windows SDK Installation
       shell: pwsh
       run: |
-        $sdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
-        $sdkVersion = Get-ChildItem -Path $sdkPath -Directory | Sort-Object Name -Descending | Select-Object -First 1
-        $makeAppxPath = Join-Path $sdkVersion.FullName "x64\MakeAppx.exe"
-        if (Test-Path $makeAppxPath) {
-          Write-Host "MakeAppx found at: $makeAppxPath"
-          echo "MAKEAPPX_PATH=$makeAppxPath" >> $env:GITHUB_ENV
-        } else {
-          Write-Error "MakeAppx.exe not found"
-          exit 1
+        $ErrorActionPreference = "Continue"
+        Write-Host "Checking for Windows SDK installation..."
+        
+        # Check common Windows SDK locations (GitHub Actions runners usually have it pre-installed)
+        $sdkPaths = @(
+          "${env:ProgramFiles(x86)}\Windows Kits\10\bin",
+          "${env:ProgramFiles}\Windows Kits\10\bin",
+          "${env:ProgramFiles(x86)}\Windows Kits\10\App Certification Kit",
+          "${env:ProgramFiles}\Windows Kits\10\App Certification Kit"
+        )
+        
+        Write-Host "Checking SDK paths..."
+        foreach ($path in $sdkPaths) {
+          if (Test-Path $path) {
+            Write-Host "  Found: $path"
+          }
+        }
+        
+        # Search for MakeAppx.exe recursively in common locations
+        $makeAppx = $null
+        $searchPaths = @(
+          "${env:ProgramFiles(x86)}\Windows Kits",
+          "${env:ProgramFiles}\Windows Kits"
+        )
+        
+        foreach ($searchPath in $searchPaths) {
+          if (Test-Path $searchPath) {
+            Write-Host "Searching in: $searchPath"
+            $makeAppx = Get-ChildItem -Path $searchPath -Filter "MakeAppx.exe" -Recurse -ErrorAction SilentlyContinue | 
+              Sort-Object FullName -Descending | 
+              Select-Object -First 1
+            if ($makeAppx) {
+              Write-Host "✓ MakeAppx.exe found at: $($makeAppx.FullName)"
+              break
+            }
+          }
+        }
+        
+        if (-not $makeAppx) {
+          Write-Host "MakeAppx.exe not found. Checking PATH..."
+          $makeAppxInPath = Get-Command MakeAppx.exe -ErrorAction SilentlyContinue
+          if ($makeAppxInPath) {
+            Write-Host "✓ MakeAppx.exe found in PATH: $($makeAppxInPath.Source)"
+          } else {
+            Write-Host "⚠ MakeAppx.exe not found. The script will try to find it during build."
+            Write-Host "Windows SDK may need to be installed. Listing available SDK components:"
+            if (Test-Path "${env:ProgramFiles(x86)}\Windows Kits") {
+              Get-ChildItem -Path "${env:ProgramFiles(x86)}\Windows Kits" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
+                Write-Host "  - $($_.FullName)"
+              }
+            }
+          }
+        }
+        
+        # Verify SignTool as well
+        $signTool = $null
+        foreach ($searchPath in $searchPaths) {
+          if (Test-Path $searchPath) {
+            $signTool = Get-ChildItem -Path $searchPath -Filter "signtool.exe" -Recurse -ErrorAction SilentlyContinue | 
+              Sort-Object FullName -Descending | 
+              Select-Object -First 1
+            if ($signTool) {
+              Write-Host "✓ SignTool.exe found at: $($signTool.FullName)"
+              break
+            }
+          }
+        }
+        
+        if (-not $signTool) {
+          Write-Host "⚠ SignTool.exe not found. Package may not be signed, but build will continue."
         }
     
     - name: Build MSIX Package
       shell: pwsh
       run: |
+        $ErrorActionPreference = "Stop"
+        Write-Host "Current directory: $(Get-Location)"
+        Write-Host "Script path: $PSScriptRoot"
+        
+        if (-not (Test-Path ".\scripts\build-msix.ps1")) {
+          Write-Error "build-msix.ps1 not found at .\scripts\build-msix.ps1"
+          Get-ChildItem -Recurse -Filter "build-msix.ps1" | ForEach-Object { Write-Host "Found at: $($_.FullName)" }
+          exit 1
+        }
+        
         .\scripts\build-msix.ps1 -Configuration Release -OutputPath ".\dist\msix"
     
     - name: Upload MSIX Artifact

@@ -50,7 +50,7 @@
             <div class="col-md-6">
                 <label class="form-label">Search</label>
                 <input type="text" class="form-control" placeholder="Search tasks..." 
-                       @bind="SearchText" @bind:event="oninput" @oninput="OnSearchChanged" />
+                       @bind="SearchText" @bind:event="oninput" @bind:after="OnSearchChanged" />
             </div>
             <div class="col-md-6">
                 <label class="form-label">Sort By</label>
@@ -132,7 +132,7 @@
         return SelectedCompletion?.ToString().ToLower() ?? "";
     }
 
-    private async Task OnStatusChanged(ChangeEventArgs e)
+    private async System.Threading.Tasks.Task OnStatusChanged(ChangeEventArgs e)
     {
         var value = e.Value?.ToString();
         if (string.IsNullOrEmpty(value))
@@ -146,7 +146,7 @@
         await NotifyFilterChange();
     }
 
-    private async Task OnPriorityChanged(ChangeEventArgs e)
+    private async System.Threading.Tasks.Task OnPriorityChanged(ChangeEventArgs e)
     {
         var value = e.Value?.ToString();
         if (string.IsNullOrEmpty(value))
@@ -160,7 +160,7 @@
         await NotifyFilterChange();
     }
 
-    private async Task OnCompletionChanged(ChangeEventArgs e)
+    private async System.Threading.Tasks.Task OnCompletionChanged(ChangeEventArgs e)
     {
         var value = e.Value?.ToString();
         if (string.IsNullOrEmpty(value))
@@ -174,18 +174,18 @@
         await NotifyFilterChange();
     }
 
-    private async Task OnFilterChanged()
+    private async System.Threading.Tasks.Task OnFilterChanged()
     {
         await NotifyFilterChange();
     }
 
-    private async Task OnSearchChanged(ChangeEventArgs e)
+    private async System.Threading.Tasks.Task OnSearchChanged(ChangeEventArgs e)
     {
         SearchText = e.Value?.ToString() ?? string.Empty;
         await NotifyFilterChange();
     }
 
-    private async Task NotifyFilterChange()
+    private async System.Threading.Tasks.Task NotifyFilterChange()
     {
         var options = new FilterOptions
         {
@@ -199,7 +199,7 @@
         await OnFiltersChanged.InvokeAsync(options);
     }
 
-    private async Task ClearFilters()
+    private async System.Threading.Tasks.Task ClearFilters()
     {
         SelectedProjectId = null;
         SelectedStatus = null;

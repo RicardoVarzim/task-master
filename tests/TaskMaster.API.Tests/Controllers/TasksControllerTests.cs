@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Threading.Tasks;
 using TaskMaster.API.Controllers;
 using TaskMaster.API.Models;
 using TaskMaster.Core.Data;
@@ -78,7 +79,7 @@ public class TasksControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetTasks_ReturnsAllTasks()
+    public async System.Threading.Tasks.Task GetTasks_ReturnsAllTasks()
     {
         // Act
         var result = await _controller.GetTasks();
@@ -93,7 +94,7 @@ public class TasksControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetTasks_WithProjectIdFilter_ReturnsFilteredTasks()
+    public async System.Threading.Tasks.Task GetTasks_WithProjectIdFilter_ReturnsFilteredTasks()
     {
         // Act
         var result = await _controller.GetTasks(projectId: 1);
@@ -108,7 +109,7 @@ public class TasksControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetTasks_WithIsCompletedFilter_ReturnsFilteredTasks()
+    public async System.Threading.Tasks.Task GetTasks_WithIsCompletedFilter_ReturnsFilteredTasks()
     {
         // Act
         var result = await _controller.GetTasks(isCompleted: true);
@@ -123,7 +124,7 @@ public class TasksControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetTasks_WithPagination_ReturnsPagedResults()
+    public async System.Threading.Tasks.Task GetTasks_WithPagination_ReturnsPagedResults()
     {
         // Act
         var result = await _controller.GetTasks(pageNumber: 1, pageSize: 1);
@@ -140,7 +141,7 @@ public class TasksControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetTask_WithValidId_ReturnsTask()
+    public async System.Threading.Tasks.Task GetTask_WithValidId_ReturnsTask()
     {
         // Act
         var result = await _controller.GetTask(1);
@@ -155,7 +156,7 @@ public class TasksControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetTask_WithInvalidId_ReturnsNotFound()
+    public async System.Threading.Tasks.Task GetTask_WithInvalidId_ReturnsNotFound()
     {
         // Act
         var result = await _controller.GetTask(999);
@@ -165,7 +166,7 @@ public class TasksControllerTests : IDisposable
     }
 
     [Fact]
-    public async Task GetTasks_WithSorting_ReturnsSortedTasks()
+    public async System.Threading.Tasks.Task GetTasks_WithSorting_ReturnsSortedTasks()
     {
         // Act
         var result = await _controller.GetTasks(sortBy: "priority", sortOrder: "asc");

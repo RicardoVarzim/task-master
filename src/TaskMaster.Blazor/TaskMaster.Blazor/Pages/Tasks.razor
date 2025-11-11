@@ -183,7 +183,7 @@
     [SupplyParameterFromQuery(Name = "projectId")]
     public int? ProjectIdFromQuery { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    protected override async System.Threading.Tasks.Task OnInitializedAsync()
     {
         HttpClient.BaseAddress = new Uri("http://localhost:5000");
         await LoadData();
@@ -215,7 +215,7 @@
         });
     }
 
-    private async Task LoadData()
+    private async System.Threading.Tasks.Task LoadData()
     {
         isLoading = true;
         try
@@ -233,7 +233,7 @@
         }
     }
 
-    private async Task LoadProjects()
+    private async System.Threading.Tasks.Task LoadProjects()
     {
         try
         {
@@ -246,7 +246,7 @@
         }
     }
 
-    private async Task LoadTasks()
+    private async System.Threading.Tasks.Task LoadTasks()
     {
         try
         {
@@ -259,11 +259,11 @@
         }
     }
 
-    private async Task HandleFiltersChanged(TaskFilter.FilterOptions filters)
+    private async System.Threading.Tasks.Task HandleFiltersChanged(TaskFilter.FilterOptions filters)
     {
         currentFilters = filters;
         ApplyFilters();
-        await Task.CompletedTask;
+        await System.Threading.Tasks.Task.CompletedTask;
     }
 
     private void ApplyFilters()
@@ -313,7 +313,7 @@
         filteredTasks = filtered.ToList();
     }
 
-    private async Task HandleTaskClick(TaskModel task)
+    private async System.Threading.Tasks.Task HandleTaskClick(TaskModel task)
     {
         // Load full task details
         var fullTask = await TaskService.GetTaskAsync(task.Id);
@@ -325,7 +325,7 @@
         selectedTask = null;
     }
 
-    private async Task HandleToggleComplete((TaskModel Task, bool IsCompleted) args)
+    private async System.Threading.Tasks.Task HandleToggleComplete((TaskModel Task, bool IsCompleted) args)
     {
         try
         {
@@ -360,13 +360,13 @@
         }
     }
 
-    private async Task RefreshTasks()
+    private async System.Threading.Tasks.Task RefreshTasks()
     {
         isSyncing = true;
         try
         {
             await TaskService.SyncAllProjectsAsync();
-            await Task.Delay(1000); // Wait a bit for sync to complete
+            await System.Threading.Tasks.Task.Delay(1000); // Wait a bit for sync to complete
             await LoadTasks();
         }
         catch (Exception ex)

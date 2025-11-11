@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using TaskMaster.Blazor.Services;
 using TaskMaster.Core.Data;
+using System.Threading.Tasks;
 
 var builder = WebApplication.CreateBuilder(args);
 
