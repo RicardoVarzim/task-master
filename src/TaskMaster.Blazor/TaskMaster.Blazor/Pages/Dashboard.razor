@@ -533,12 +533,13 @@
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         if (HubConnection is not null)
         {
             HubConnection.Remove("TasksUpdated");
         }
+        return ValueTask.CompletedTask;
     }
 
     private class ProjectStats

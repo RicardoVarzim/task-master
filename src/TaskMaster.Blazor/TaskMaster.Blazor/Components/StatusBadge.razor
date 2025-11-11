@@ -11,11 +11,11 @@
     {
         return Status switch
         {
-            TaskStatus.Completed => "bg-success",
-            TaskStatus.InProgress => "bg-primary",
-            TaskStatus.Planned => "bg-info",
-            TaskStatus.Blocked => "bg-danger",
-            TaskStatus.Pending => "bg-secondary",
+            TaskStatusModel.Completed => "bg-success",
+            TaskStatusModel.InProgress => "bg-primary",
+            TaskStatusModel.Planned => "bg-info",
+            TaskStatusModel.Blocked => "bg-danger",
+            TaskStatusModel.Pending => "bg-secondary",
             _ => "bg-secondary"
         };
     }
@@ -24,11 +24,11 @@
     {
         return Status switch
         {
-            TaskStatus.Completed => "Completed",
-            TaskStatus.InProgress => "In Progress",
-            TaskStatus.Planned => "Planned",
-            TaskStatus.Blocked => "Blocked",
-            TaskStatus.Pending => "Pending",
+            TaskStatusModel.Completed => "Completed",
+            TaskStatusModel.InProgress => "In Progress",
+            TaskStatusModel.Planned => "Planned",
+            TaskStatusModel.Blocked => "Blocked",
+            TaskStatusModel.Pending => "Pending",
             _ => Status.ToString()
         };
     }

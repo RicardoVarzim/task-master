@@ -379,13 +379,14 @@
         }
     }
 
-    public async ValueTask DisposeAsync()
+    public ValueTask DisposeAsync()
     {
         if (HubConnection is not null)
         {
             HubConnection.Remove("TasksUpdated");
             // Don't dispose the HubConnection here as it's a singleton
         }
+        return ValueTask.CompletedTask;
     }
 }
 
