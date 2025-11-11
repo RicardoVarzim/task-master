@@ -93,7 +93,27 @@ dotnet publish $blazorProject -c $Configuration -r win-x64 --self-contained true
 Write-Host "`n2. Copying assets..." -ForegroundColor Yellow
 $sourceAssets = "src\TaskMaster.Host\Assets"
 if (Test-Path $sourceAssets) {
-    Copy-Item "$sourceAssets\*" -Destination $assetsDir -Recurse -Force
+    Copy-Item "$sourceAssets\*" -Destination $assetsDir -Recurse -Force -Exclude "README-ICONS.md"
+    
+    # Verify required assets exist
+    $requiredAssets = @("StoreLogo.png", "Square150x150Logo.png", "Square44x44Logo.png", "Wide310x150Logo.png", "SplashScreen.png")
+    $missingAssets = @()
+    foreach ($asset in $requiredAssets) {
+        $assetPath = Join-Path $assetsDir $asset
+        if (-not (Test-Path $assetPath)) {
+            $missingAssets += $asset
+        }
+    }
+    
+    if ($missingAssets.Count -gt 0) {
+        Write-Host "  ERROR: Missing required assets: $($missingAssets -join ', ')" -ForegroundColor Red
+        Write-Host "  Run .\scripts\generate-assets.ps1 to create default assets." -ForegroundColor Yellow
+        exit 1
+    }
+} else {
+    Write-Host "  ERROR: Assets directory not found: $sourceAssets" -ForegroundColor Red
+    Write-Host "  Run .\scripts\generate-assets.ps1 to create default assets." -ForegroundColor Yellow
+    exit 1
 }
 
 # Copy manifest
