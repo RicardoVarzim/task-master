@@ -277,23 +277,26 @@ Task Master é uma aplicação desktop local-first que monitoriza ficheiros Mark
 
 ---
 
-### 📋 Fase 7: Empacotamento e Distribuição (PENDENTE)
+### ✅ Fase 7: Empacotamento e Distribuição (COMPLETO - Demo)
 
 #### 7.1 MSIX Package
-- [ ] Configuração de empacotamento MSIX
-- [ ] Manifesto de aplicação
-- [ ] Ícones e recursos
-- [ ] Certificado de assinatura
+- [x] Configuração de empacotamento MSIX
+- [x] Manifesto de aplicação (`Package.appxmanifest`)
+- [x] Estrutura de recursos (Assets/)
+- [x] Certificado de assinatura (self-signed para demo)
+- [x] Script de build automatizado (`scripts/build-msix.ps1`)
 
 #### 7.2 Instalação e Atualização
-- [ ] Instalador MSIX
-- [ ] Atualizações automáticas
-- [ ] Migração de dados entre versões
+- [x] Instalador MSIX funcional
+- [ ] Atualizações automáticas (pendente para produção)
+- [ ] Migração de dados entre versões (pendente)
 
 #### 7.3 Documentação de Utilizador
-- [ ] Manual de utilizador
-- [ ] Guia de início rápido
-- [ ] FAQ
+- [x] Guia de início rápido (`docs/QUICK-START.md`)
+- [x] Guia de empacotamento MSIX (`docs/MSIX-PACKAGING.md`)
+- [x] Documentação de ícones (`src/TaskMaster.Host/Assets/README-ICONS.md`)
+- [ ] Manual completo de utilizador (pendente)
+- [ ] FAQ (pendente)
 - [ ] Vídeos tutoriais (opcional)
 
 ---
@@ -422,6 +425,7 @@ Task Master é uma aplicação desktop local-first que monitoriza ficheiros Mark
 - **Fase 3**: Blazor Frontend (85% - falta edição inline completa e algumas melhorias)
 - **Fase 4**: API Completa (90% - falta sincronização incremental e relatórios)
 - **Fase 6**: Testes (20% - testes básicos de controllers implementados)
+- **Fase 7**: Empacotamento MSIX (80% - demo funcional, falta atualizações automáticas)
 
 ### 🚧 Em Progresso
 - Edição inline completa de tarefas

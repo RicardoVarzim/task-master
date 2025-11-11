@@ -55,15 +55,14 @@ public class ServiceManager
 
         try
         {
-            var apiDll = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TaskMaster.API.dll");
-            if (!File.Exists(apiDll))
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var apiDll = FindDll("TaskMaster.API.dll", baseDir,
+                Path.Combine(baseDir, "..", "..", "..", "..", "TaskMaster.API", "TaskMaster.API", "bin", "Debug", "net8.0"),
+                Path.Combine(baseDir, "..", "..", "..", "..", "TaskMaster.API", "TaskMaster.API", "bin", "Release", "net8.0"));
+
+            if (string.IsNullOrEmpty(apiDll))
             {
-                // Try to find it in the referenced project output
-                var apiProjectPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "TaskMaster.API", "TaskMaster.API", "bin", "Debug", "net8.0", "TaskMaster.API.dll");
-                if (File.Exists(apiProjectPath))
-                {
-                    apiDll = apiProjectPath;
-                }
+                throw new FileNotFoundException("TaskMaster.API.dll not found");
             }
 
             _apiProcess = new Process
@@ -75,7 +74,8 @@ public class ServiceManager
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
-                    RedirectStandardError = true
+                    RedirectStandardError = true,
+                    WorkingDirectory = Path.GetDirectoryName(apiDll)
                 }
             };
 
@@ -89,6 +89,7 @@ public class ServiceManager
         {
             System.Diagnostics.Debug.WriteLine($"Error starting API: {ex.Message}");
             IsApiRunning = false;
+            throw;
         }
     }
 
@@ -98,14 +99,14 @@ public class ServiceManager
 
         try
         {
-            var workerDll = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TaskMaster.Worker.dll");
-            if (!File.Exists(workerDll))
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var workerDll = FindDll("TaskMaster.Worker.dll", baseDir,
+                Path.Combine(baseDir, "..", "..", "..", "..", "TaskMaster.Worker", "TaskMaster.Worker", "bin", "Debug", "net8.0"),
+                Path.Combine(baseDir, "..", "..", "..", "..", "TaskMaster.Worker", "TaskMaster.Worker", "bin", "Release", "net8.0"));
+
+            if (string.IsNullOrEmpty(workerDll))
             {
-                var workerProjectPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "TaskMaster.Worker", "TaskMaster.Worker", "bin", "Debug", "net8.0", "TaskMaster.Worker.dll");
-                if (File.Exists(workerProjectPath))
-                {
-                    workerDll = workerProjectPath;
-                }
+                throw new FileNotFoundException("TaskMaster.Worker.dll not found");
             }
 
             _workerProcess = new Process
@@ -117,7 +118,8 @@ public class ServiceManager
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
-                    RedirectStandardError = true
+                    RedirectStandardError = true,
+                    WorkingDirectory = Path.GetDirectoryName(workerDll)
                 }
             };
 
@@ -128,6 +130,7 @@ public class ServiceManager
         {
             System.Diagnostics.Debug.WriteLine($"Error starting Worker: {ex.Message}");
             IsWorkerRunning = false;
+            throw;
         }
     }
 
@@ -137,14 +140,14 @@ public class ServiceManager
 
         try
         {
-            var blazorDll = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TaskMaster.Blazor.dll");
-            if (!File.Exists(blazorDll))
+            var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+            var blazorDll = FindDll("TaskMaster.Blazor.dll", baseDir,
+                Path.Combine(baseDir, "..", "..", "..", "..", "TaskMaster.Blazor", "TaskMaster.Blazor", "bin", "Debug", "net8.0"),
+                Path.Combine(baseDir, "..", "..", "..", "..", "TaskMaster.Blazor", "TaskMaster.Blazor", "bin", "Release", "net8.0"));
+
+            if (string.IsNullOrEmpty(blazorDll))
             {
-                var blazorProjectPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "..", "..", "..", "..", "TaskMaster.Blazor", "TaskMaster.Blazor", "bin", "Debug", "net8.0", "TaskMaster.Blazor.dll");
-                if (File.Exists(blazorProjectPath))
-                {
-                    blazorDll = blazorProjectPath;
-                }
+                throw new FileNotFoundException("TaskMaster.Blazor.dll not found");
             }
 
             _blazorProcess = new Process
@@ -156,7 +159,8 @@ public class ServiceManager
                     UseShellExecute = false,
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
-                    RedirectStandardError = true
+                    RedirectStandardError = true,
+                    WorkingDirectory = Path.GetDirectoryName(blazorDll)
                 }
             };
 
@@ -176,6 +180,7 @@ public class ServiceManager
         {
             System.Diagnostics.Debug.WriteLine($"Error starting Blazor: {ex.Message}");
             IsBlazorRunning = false;
+            throw;
         }
     }
 
@@ -243,6 +248,19 @@ public class ServiceManager
 
             await Task.Delay(1000);
         }
+    }
+
+    private string? FindDll(string dllName, params string[] searchPaths)
+    {
+        foreach (var path in searchPaths)
+        {
+            var fullPath = Path.Combine(path, dllName);
+            if (File.Exists(fullPath))
+            {
+                return fullPath;
+            }
+        }
+        return null;
     }
 
     public void Dispose()

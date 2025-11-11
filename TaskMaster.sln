@@ -17,6 +17,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskMaster.Blazor", "src\Ta
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskMaster.Core.Tests", "tests\TaskMaster.Core.Tests\TaskMaster.Core.Tests\TaskMaster.Core.Tests.csproj", "{54840768-B419-41AC-9326-6E46B7A700B5}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaskMaster.Host", "src\TaskMaster.Host\TaskMaster.Host.csproj", "{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -87,6 +89,18 @@ Global
 		{54840768-B419-41AC-9326-6E46B7A700B5}.Release|x64.Build.0 = Release|Any CPU
 		{54840768-B419-41AC-9326-6E46B7A700B5}.Release|x86.ActiveCfg = Release|Any CPU
 		{54840768-B419-41AC-9326-6E46B7A700B5}.Release|x86.Build.0 = Release|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Debug|x64.Build.0 = Debug|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Debug|x86.Build.0 = Debug|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Release|x64.ActiveCfg = Release|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Release|x64.Build.0 = Release|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Release|x86.ActiveCfg = Release|Any CPU
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -98,5 +112,6 @@ Global
 		{A46913C7-9AD6-4F65-B0C7-AD788BF67FB0} = {7771D5A9-8202-E749-731D-3DB41E1CE901}
 		{4151D4AD-0404-4C1E-8448-5BC91836502E} = {7771D5A9-8202-E749-731D-3DB41E1CE901}
 		{54840768-B419-41AC-9326-6E46B7A700B5} = {7771D5A9-8202-E749-731D-3DB41E1CE901}
+		{4BDFDDEB-5A19-4AB5-93A9-6C42217BAF53} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 	EndGlobalSection
 EndGlobal
