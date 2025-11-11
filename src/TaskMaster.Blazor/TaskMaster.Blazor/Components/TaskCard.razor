@@ -1,0 +1,74 @@
+@using TaskMaster.Core.Models
+@using TaskModel = TaskMaster.Core.Models.Task
+
+<div class="card mb-3 @(Task.IsCompleted ? "border-success" : "")" style="cursor: pointer;" @onclick="() => OnTaskClick?.Invoke(Task)">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="flex-grow-1">
+                <h6 class="card-title mb-1 @(Task.IsCompleted ? "text-decoration-line-through text-muted" : "")">
+                    @if (Task.IsCompleted)
+                    {
+                        <span class="text-success">✓</span>
+                    }
+                    @Task.Description
+                </h6>
+                <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                    <StatusBadge Status="@Task.Status" />
+                    @if (Task.Priority.HasValue)
+                    {
+                        <PriorityBadge Priority="@Task.Priority" />
+                    }
+                    @if (Task.Tags != null && Task.Tags.Any())
+                    {
+                        @foreach (var tag in Task.Tags)
+                        {
+                            <TagBadge Tag="@tag.Name" />
+                        }
+                    }
+                </div>
+                <small class="text-muted">
+                    <span>@Task.Project?.Name</span>
+                    @if (!string.IsNullOrEmpty(Task.SourceFilePath))
+                    {
+                        <span> • @System.IO.Path.GetFileName(Task.SourceFilePath)</span>
+                    }
+                    @if (Task.LineNumber > 0)
+                    {
+                        <span> • Line @Task.LineNumber</span>
+                    }
+                </small>
+            </div>
+            <div class="ms-2">
+                <input type="checkbox" 
+                       class="form-check-input" 
+                       checked="@Task.IsCompleted"
+                       @onchange="(e) => OnToggleComplete?.Invoke(Task, (bool)e.Value!)"
+                       @onclick:stopPropagation="true" />
+            </div>
+        </div>
+        @if (Task.Assignments != null && Task.Assignments.Any())
+        {
+            <div class="mt-2">
+                <small class="text-muted">
+                    Assigned to:
+                    @foreach (var assignment in Task.Assignments)
+                    {
+                        <span>@assignment.TeamMember?.Name (@assignment.Role)</span>
+                    }
+                </small>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public TaskModel Task { get; set; } = null!;
+
+    [Parameter]
+    public EventCallback<TaskModel> OnTaskClick { get; set; }
+
+    [Parameter]
+    public EventCallback<(TaskModel Task, bool IsCompleted)> OnToggleComplete { get; set; }
+}
+

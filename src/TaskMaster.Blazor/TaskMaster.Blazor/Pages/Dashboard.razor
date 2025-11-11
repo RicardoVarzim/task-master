@@ -1,0 +1,548 @@
+@page "/dashboard"
+@page "/"
+@using TaskMaster.Blazor.Components
+@using TaskMaster.Blazor.Services
+@using TaskMaster.Blazor.Models
+@using TaskMaster.Core.Models
+@using TaskModel = TaskMaster.Core.Models.Task
+@using TaskStatus = TaskMaster.Core.Models.TaskStatus
+@using Microsoft.AspNetCore.SignalR.Client
+@inject HttpClient HttpClient
+@inject TaskService TaskService
+@inject MetricsService MetricsService
+@inject NavigationManager Navigation
+@inject Microsoft.AspNetCore.SignalR.Client.HubConnection HubConnection
+@implements IAsyncDisposable
+
+<PageTitle>Task Master - Dashboard</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h1>Dashboard</h1>
+            <p class="text-muted">Overview of your tasks and projects</p>
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="RefreshDashboard" disabled="@isRefreshing">
+                @if (isRefreshing)
+                {
+                    <span class="spinner-border spinner-border-sm me-1"></span>
+                }
+                else
+                {
+                    <span class="oi oi-reload me-1"></span>
+                }
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- Overview Statistics -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <StatCard Title="Total Tasks" 
+                          Value="@overviewMetrics?.TotalTasks.ToString() ?? "0""
+                          Icon="📋"
+                          IconColor="primary" />
+            </div>
+            <div class="col-md-3">
+                <StatCard Title="Completed" 
+                          Value="@overviewMetrics?.CompletedTasks.ToString() ?? "0""
+                          Subtitle="@GetCompletionRate()% completion rate"
+                          Icon="✅"
+                          IconColor="success"
+                          ShowProgress="true"
+                          MaxValue="@(overviewMetrics?.TotalTasks ?? 1)"
+                          CurrentValue="@(overviewMetrics?.CompletedTasks ?? 0)"
+                          ProgressColor="success" />
+            </div>
+            <div class="col-md-3">
+                <StatCard Title="In Progress" 
+                          Value="@overviewMetrics?.InProgressTasks.ToString() ?? "0""
+                          Icon="🔄"
+                          IconColor="info" />
+            </div>
+            <div class="col-md-3">
+                <StatCard Title="Blocked" 
+                          Value="@overviewMetrics?.BlockedTasks.ToString() ?? "0""
+                          Icon="🚧"
+                          IconColor="danger" />
+            </div>
+        </div>
+
+        <!-- Projects Overview -->
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Projects Overview</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (projects.Any())
+                        {
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Project</th>
+                                            <th>Total</th>
+                                            <th>Completed</th>
+                                            <th>In Progress</th>
+                                            <th>Progress</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var project in projects)
+                                        {
+                                            var stats = GetProjectStats(project.Id);
+                                            <tr>
+                                                <td>
+                                                    <strong>@project.Name</strong>
+                                                    @if (!string.IsNullOrEmpty(project.GitRepositoryPath))
+                                                    {
+                                                        <span class="badge bg-success ms-2">Git</span>
+                                                    }
+                                                </td>
+                                                <td>@stats.TotalTasks</td>
+                                                <td>@stats.CompletedTasks</td>
+                                                <td>@stats.InProgressTasks</td>
+                                                <td>
+                                                    <div class="progress" style="height: 20px; width: 100px;">
+                                                        <div class="progress-bar bg-success" 
+                                                             role="progressbar" 
+                                                             style="width: @stats.CompletionPercentage%"
+                                                             aria-valuenow="@stats.CompletionPercentage" 
+                                                             aria-valuemin="0" 
+                                                             aria-valuemax="100">
+                                                            @stats.CompletionPercentage%
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-outline-primary" 
+                                                            @onclick="() => ViewProjectTasks(project.Id)">
+                                                        View Tasks
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info mb-0">
+                                No projects found. <a href="/projects">Add your first project</a> to get started.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">Tasks by Priority</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (overviewMetrics?.TasksByPriority != null && overviewMetrics.TasksByPriority.Any())
+                        {
+                            <div class="list-group list-group-flush">
+                                @foreach (var priority in overviewMetrics.TasksByPriority.OrderByDescending(p => p.Value))
+                                {
+                                    <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                                        <span>
+                                            <PriorityBadge Priority="@GetPriorityFromString(priority.Key)" />
+                                        </span>
+                                        <span class="badge bg-primary rounded-pill">@priority.Value</span>
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <p class="text-muted mb-0">No priority data available</p>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Tasks -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title mb-0">Recent Tasks</h5>
+                        <a href="/tasks" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        @if (recentTasks.Any())
+                        {
+                            <div class="row">
+                                @foreach (var task in recentTasks.Take(6))
+                                {
+                                    <div class="col-md-4 mb-3">
+                                        <TaskCard Task="@task" 
+                                                  OnTaskClick="HandleTaskClick" 
+                                                  OnToggleComplete="HandleToggleComplete" />
+                                    </div>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-info mb-0">
+                                No recent tasks. Tasks will appear here as you add them to your projects.
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Chart -->
+        @if (projectMetrics != null)
+        {
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">Recent Activity (Last 14 Days)</h5>
+                        </div>
+                        <div class="card-body">
+                            @if (projectMetrics.RecentActivity.Any())
+                            {
+                                <div class="activity-chart">
+                                    @{
+                                        var maxValue = projectMetrics.RecentActivity.Values.DefaultIfEmpty(0).Max();
+                                        var orderedActivities = projectMetrics.RecentActivity
+                                            .OrderBy(a => a.Key)
+                                            .Take(14)
+                                            .ToList();
+                                    }
+                                    @foreach (var activity in orderedActivities)
+                                    {
+                                        var date = DateTime.TryParse(activity.Key, out var parsedDate) ? parsedDate : DateTime.Now;
+                                        var height = maxValue > 0 ? Math.Max(20, (activity.Value * 160.0 / maxValue)) : 20;
+                                        <div class="activity-bar" 
+                                             style="height: @(height)px;" 
+                                             title="@date.ToString("MMM dd"): @activity.Value tasks">
+                                            <div class="activity-value">@activity.Value</div>
+                                        </div>
+                                    }
+                                </div>
+                                @if (orderedActivities.Any())
+                                {
+                                    <div class="mt-2 text-center">
+                                        <small class="text-muted">
+                                            @{
+                                                var firstDate = DateTime.TryParse(orderedActivities.First().Key, out var sd) ? sd : DateTime.Now;
+                                                var lastDate = DateTime.TryParse(orderedActivities.Last().Key, out var ed) ? ed : DateTime.Now;
+                                            }
+                                            @firstDate.ToString("MMM dd") - @lastDate.ToString("MMM dd")
+                                        </small>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center py-4">
+                                    <p class="text-muted mb-0">No activity data available yet</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@if (selectedTask != null)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Task Details</h5>
+                    <button type="button" class="btn-close" @onclick="CloseTaskDetails"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <p>@selectedTask.Description</p>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Status</label>
+                            <div><StatusBadge Status="@selectedTask.Status" /></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Priority</label>
+                            <div>
+                                @if (selectedTask.Priority.HasValue)
+                                {
+                                    <PriorityBadge Priority="@selectedTask.Priority" />
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not set</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Project</label>
+                        <p>@selectedTask.Project?.Name</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseTaskDetails">Close</button>
+                    <a href="/tasks?projectId=@selectedTask.ProjectId" class="btn btn-primary">View in Tasks</a>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<Project> projects = new();
+    private List<TaskModel> allTasks = new();
+    private List<TaskModel> recentTasks = new();
+    private TaskModel? selectedTask = null;
+    private OverviewMetrics? overviewMetrics;
+    private ProjectMetrics? projectMetrics;
+    private bool isLoading = true;
+    private bool isRefreshing = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        HttpClient.BaseAddress = new Uri("http://localhost:5000");
+        await LoadDashboardData();
+
+        // Setup SignalR connection for real-time updates
+        if (HubConnection.State == HubConnectionState.Disconnected)
+        {
+            try
+            {
+                await HubConnection.StartAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error starting SignalR connection: {ex.Message}");
+            }
+        }
+
+        HubConnection.On("TasksUpdated", async () =>
+        {
+            await LoadDashboardData();
+            StateHasChanged();
+        });
+    }
+
+    private async Task LoadDashboardData()
+    {
+        isLoading = true;
+        try
+        {
+            await Task.WhenAll(
+                LoadProjects(),
+                LoadTasks(),
+                LoadMetrics()
+            );
+            
+            UpdateRecentTasks();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadProjects()
+    {
+        try
+        {
+            var response = await HttpClient.GetFromJsonAsync<List<Project>>("/api/projects");
+            projects = response ?? new List<Project>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading projects: {ex.Message}");
+        }
+    }
+
+    private async Task LoadTasks()
+    {
+        try
+        {
+            allTasks = await TaskService.GetTasksAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading tasks: {ex.Message}");
+        }
+    }
+
+    private async Task LoadMetrics()
+    {
+        try
+        {
+            overviewMetrics = await MetricsService.GetOverviewMetricsAsync();
+            
+            // Load metrics for the first project if available
+            if (projects.Any())
+            {
+                projectMetrics = await MetricsService.GetProjectMetricsAsync(projects.First().Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading metrics: {ex.Message}");
+            // Initialize empty metrics if loading fails
+            overviewMetrics = new OverviewMetrics();
+        }
+    }
+
+    private void UpdateRecentTasks()
+    {
+        recentTasks = allTasks
+            .OrderByDescending(t => t.UpdatedAt)
+            .Take(6)
+            .ToList();
+    }
+
+    private ProjectStats GetProjectStats(int projectId)
+    {
+        var projectTasks = allTasks.Where(t => t.ProjectId == projectId).ToList();
+        return new ProjectStats
+        {
+            TotalTasks = projectTasks.Count,
+            CompletedTasks = projectTasks.Count(t => t.IsCompleted),
+            PendingTasks = projectTasks.Count(t => t.Status == TaskStatus.Pending),
+            InProgressTasks = projectTasks.Count(t => t.Status == TaskStatus.InProgress),
+            BlockedTasks = projectTasks.Count(t => t.Status == TaskStatus.Blocked),
+            CompletionPercentage = projectTasks.Count > 0 
+                ? (int)((double)projectTasks.Count(t => t.IsCompleted) / projectTasks.Count * 100)
+                : 0
+        };
+    }
+
+    private string GetCompletionRate()
+    {
+        if (overviewMetrics == null || overviewMetrics.TotalTasks == 0)
+            return "0";
+        
+        return Math.Round(overviewMetrics.OverallCompletionRate, 1).ToString();
+    }
+
+    private TaskPriority? GetPriorityFromString(string priorityStr)
+    {
+        return Enum.TryParse<TaskPriority>(priorityStr, true, out var priority) ? priority : null;
+    }
+
+    private async Task HandleTaskClick(TaskModel task)
+    {
+        var fullTask = await TaskService.GetTaskAsync(task.Id);
+        selectedTask = fullTask;
+    }
+
+    private void CloseTaskDetails()
+    {
+        selectedTask = null;
+    }
+
+    private async Task HandleToggleComplete((TaskModel Task, bool IsCompleted) args)
+    {
+        try
+        {
+            var updatedTask = await TaskService.UpdateTaskAsync(args.Task.Id, new UpdateTaskRequest
+            {
+                IsCompleted = args.IsCompleted
+            });
+
+            if (updatedTask != null)
+            {
+                // Update the task in the local list
+                var index = allTasks.FindIndex(t => t.Id == args.Task.Id);
+                if (index >= 0)
+                {
+                    allTasks[index] = updatedTask;
+                }
+                
+                // Update selected task if it's the same one
+                if (selectedTask?.Id == args.Task.Id)
+                {
+                    selectedTask = updatedTask;
+                }
+                
+                UpdateRecentTasks();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating task completion: {ex.Message}");
+            // Revert the checkbox state on error
+            StateHasChanged();
+        }
+    }
+
+    private void ViewProjectTasks(int projectId)
+    {
+        Navigation.NavigateTo($"/tasks?projectId={projectId}");
+    }
+
+    private async Task RefreshDashboard()
+    {
+        isRefreshing = true;
+        try
+        {
+            await TaskService.SyncAllProjectsAsync();
+            await Task.Delay(1000);
+            await LoadDashboardData();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error refreshing dashboard: {ex.Message}");
+        }
+        finally
+        {
+            isRefreshing = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (HubConnection is not null)
+        {
+            HubConnection.Remove("TasksUpdated");
+        }
+    }
+
+    private class ProjectStats
+    {
+        public int TotalTasks { get; set; }
+        public int CompletedTasks { get; set; }
+        public int PendingTasks { get; set; }
+        public int InProgressTasks { get; set; }
+        public int BlockedTasks { get; set; }
+        public int CompletionPercentage { get; set; }
+    }
+}
+

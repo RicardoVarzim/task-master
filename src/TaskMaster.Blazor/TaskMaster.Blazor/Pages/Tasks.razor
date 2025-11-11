@@ -1,0 +1,391 @@
+@page "/tasks"
+@using TaskMaster.Core.Models
+@using TaskMaster.Blazor.Components
+@using TaskMaster.Blazor.Services
+@using Microsoft.AspNetCore.SignalR.Client
+@using TaskModel = TaskMaster.Core.Models.Task
+@using TaskStatus = TaskMaster.Core.Models.TaskStatus
+@inject TaskService TaskService
+@inject HttpClient HttpClient
+@inject NavigationManager Navigation
+@inject Microsoft.AspNetCore.SignalR.Client.HubConnection HubConnection
+@implements IAsyncDisposable
+
+<PageTitle>Task Master - Tasks</PageTitle>
+
+<div class="container-fluid">
+    <div class="row mb-3">
+        <div class="col">
+            <h1>Tasks</h1>
+            @if (allTasks.Any())
+            {
+                <p class="text-muted">
+                    Showing @filteredTasks.Count of @allTasks.Count tasks
+                    @if (filteredTasks.Count != allTasks.Count)
+                    {
+                        <span>(@(allTasks.Count - filteredTasks.Count) filtered out)</span>
+                    }
+                </p>
+            }
+        </div>
+        <div class="col-auto">
+            <button class="btn btn-primary" @onclick="RefreshTasks">
+                <span class="oi oi-reload"></span> Refresh
+            </button>
+            @if (isSyncing)
+            {
+                <span class="spinner-border spinner-border-sm ms-2" role="status"></span>
+            }
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else
+    {
+        <TaskFilter Projects="@projects" 
+                    OnFiltersChanged="HandleFiltersChanged"
+                    InitialProjectId="@currentFilters.ProjectId"
+                    InitialStatus="@currentFilters.Status"
+                    InitialPriority="@currentFilters.Priority"
+                    InitialCompletion="@currentFilters.IsCompleted"
+                    InitialSearchText="@currentFilters.SearchText"
+                    InitialSortBy="@currentFilters.SortBy" />
+
+        @if (filteredTasks.Any())
+        {
+            <div class="row">
+                <div class="col-12">
+                    @foreach (var task in filteredTasks)
+                    {
+                        <TaskCard Task="@task" 
+                                  OnTaskClick="HandleTaskClick" 
+                                  OnToggleComplete="HandleToggleComplete" />
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                @if (allTasks.Any())
+                {
+                    <p>No tasks match the current filters. Try adjusting your filters.</p>
+                }
+                else
+                {
+                    <p>No tasks found. Add some tasks to your project's <code>.tasks</code> folder in Markdown format.</p>
+                }
+            </div>
+        }
+    }
+</div>
+
+@if (selectedTask != null)
+{
+    <div class="modal show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Task Details</h5>
+                    <button type="button" class="btn-close" @onclick="CloseTaskDetails"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Description</label>
+                        <p>@selectedTask.Description</p>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Status</label>
+                            <div><StatusBadge Status="@selectedTask.Status" /></div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Priority</label>
+                            <div>
+                                @if (selectedTask.Priority.HasValue)
+                                {
+                                    <PriorityBadge Priority="@selectedTask.Priority" />
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Not set</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Project</label>
+                        <p>@selectedTask.Project?.Name</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Source File</label>
+                        <p><code>@selectedTask.SourceFilePath</code></p>
+                        <small class="text-muted">Line @selectedTask.LineNumber</small>
+                    </div>
+                    @if (selectedTask.Tags != null && selectedTask.Tags.Any())
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Tags</label>
+                            <div>
+                                @foreach (var tag in selectedTask.Tags)
+                                {
+                                    <TagBadge Tag="@tag.Name" />
+                                }
+                            </div>
+                        </div>
+                    }
+                    @if (selectedTask.Assignments != null && selectedTask.Assignments.Any())
+                    {
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Assignments</label>
+                            <ul>
+                                @foreach (var assignment in selectedTask.Assignments)
+                                {
+                                    <li>@assignment.TeamMember?.Name - @assignment.Role</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Created</label>
+                        <p>@selectedTask.CreatedAt.ToString("g")</p>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Last Updated</label>
+                        <p>@selectedTask.UpdatedAt.ToString("g")</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseTaskDetails">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<TaskModel> allTasks = new();
+    private List<TaskModel> filteredTasks = new();
+    private List<Project> projects = new();
+    private TaskModel? selectedTask = null;
+    private bool isLoading = true;
+    private bool isSyncing = false;
+    private TaskFilter.FilterOptions currentFilters = new();
+
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "projectId")]
+    public int? ProjectIdFromQuery { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        HttpClient.BaseAddress = new Uri("http://localhost:5000");
+        await LoadData();
+        
+        // Set initial filter if projectId is provided in query string
+        if (ProjectIdFromQuery.HasValue)
+        {
+            currentFilters.ProjectId = ProjectIdFromQuery.Value;
+            ApplyFilters();
+        }
+
+        // Setup SignalR connection for real-time updates
+        if (HubConnection.State == HubConnectionState.Disconnected)
+        {
+            try
+            {
+                await HubConnection.StartAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error starting SignalR connection: {ex.Message}");
+            }
+        }
+
+        HubConnection.On("TasksUpdated", async () =>
+        {
+            await LoadTasks();
+            StateHasChanged();
+        });
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            await LoadProjects();
+            await LoadTasks();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading data: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task LoadProjects()
+    {
+        try
+        {
+            var response = await HttpClient.GetFromJsonAsync<List<Project>>("/api/projects");
+            projects = response ?? new List<Project>();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading projects: {ex.Message}");
+        }
+    }
+
+    private async Task LoadTasks()
+    {
+        try
+        {
+            allTasks = await TaskService.GetTasksAsync();
+            ApplyFilters();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading tasks: {ex.Message}");
+        }
+    }
+
+    private async Task HandleFiltersChanged(TaskFilter.FilterOptions filters)
+    {
+        currentFilters = filters;
+        ApplyFilters();
+        await Task.CompletedTask;
+    }
+
+    private void ApplyFilters()
+    {
+        var filtered = allTasks.AsEnumerable();
+
+        if (currentFilters.ProjectId.HasValue)
+        {
+            filtered = filtered.Where(t => t.ProjectId == currentFilters.ProjectId.Value);
+        }
+
+        if (currentFilters.Status.HasValue)
+        {
+            filtered = filtered.Where(t => t.Status == currentFilters.Status.Value);
+        }
+
+        if (currentFilters.Priority.HasValue)
+        {
+            filtered = filtered.Where(t => t.Priority == currentFilters.Priority.Value);
+        }
+
+        if (currentFilters.IsCompleted.HasValue)
+        {
+            filtered = filtered.Where(t => t.IsCompleted == currentFilters.IsCompleted.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(currentFilters.SearchText))
+        {
+            var searchLower = currentFilters.SearchText.ToLowerInvariant();
+            filtered = filtered.Where(t =>
+                t.Description.ToLowerInvariant().Contains(searchLower) ||
+                (t.Project?.Name.ToLowerInvariant().Contains(searchLower) ?? false) ||
+                (t.Tags != null && t.Tags.Any(tag => tag.Name.ToLowerInvariant().Contains(searchLower)))
+            );
+        }
+
+        // Sort
+        filtered = currentFilters.SortBy switch
+        {
+            "priority" => filtered.OrderByDescending(t => t.Priority.HasValue)
+                .ThenByDescending(t => t.Priority ?? TaskPriority.Low),
+            "status" => filtered.OrderBy(t => t.Status),
+            "project" => filtered.OrderBy(t => t.Project?.Name ?? ""),
+            _ => filtered.OrderByDescending(t => t.CreatedAt)
+        };
+
+        filteredTasks = filtered.ToList();
+    }
+
+    private async Task HandleTaskClick(TaskModel task)
+    {
+        // Load full task details
+        var fullTask = await TaskService.GetTaskAsync(task.Id);
+        selectedTask = fullTask;
+    }
+
+    private void CloseTaskDetails()
+    {
+        selectedTask = null;
+    }
+
+    private async Task HandleToggleComplete((TaskModel Task, bool IsCompleted) args)
+    {
+        try
+        {
+            var updatedTask = await TaskService.UpdateTaskAsync(args.Task.Id, new UpdateTaskRequest
+            {
+                IsCompleted = args.IsCompleted
+            });
+
+            if (updatedTask != null)
+            {
+                // Update the task in the local list
+                var index = allTasks.FindIndex(t => t.Id == args.Task.Id);
+                if (index >= 0)
+                {
+                    allTasks[index] = updatedTask;
+                }
+                
+                // Update selected task if it's the same one
+                if (selectedTask?.Id == args.Task.Id)
+                {
+                    selectedTask = updatedTask;
+                }
+                
+                ApplyFilters();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error updating task completion: {ex.Message}");
+            // Revert the checkbox state on error
+            StateHasChanged();
+        }
+    }
+
+    private async Task RefreshTasks()
+    {
+        isSyncing = true;
+        try
+        {
+            await TaskService.SyncAllProjectsAsync();
+            await Task.Delay(1000); // Wait a bit for sync to complete
+            await LoadTasks();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error refreshing tasks: {ex.Message}");
+        }
+        finally
+        {
+            isSyncing = false;
+        }
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (HubConnection is not null)
+        {
+            HubConnection.Remove("TasksUpdated");
+            // Don't dispose the HubConnection here as it's a singleton
+        }
+    }
+}
+

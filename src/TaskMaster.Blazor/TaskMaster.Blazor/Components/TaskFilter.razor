@@ -1,0 +1,223 @@
+@using TaskMaster.Core.Models
+@using TaskStatusModel = TaskMaster.Core.Models.TaskStatus
+
+<div class="card mb-3">
+    <div class="card-body">
+        <h6 class="card-title">Filters</h6>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Project</label>
+                <select class="form-select" @bind="SelectedProjectId" @bind:after="OnFilterChanged">
+                    <option value="">All Projects</option>
+                    @foreach (var project in Projects)
+                    {
+                        <option value="@project.Id">@project.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select class="form-select" value="@GetStatusValue()" @onchange="OnStatusChanged">
+                    <option value="">All Statuses</option>
+                    <option value="@((int)TaskStatusModel.Pending)">Pending</option>
+                    <option value="@((int)TaskStatusModel.InProgress)">In Progress</option>
+                    <option value="@((int)TaskStatusModel.Planned)">Planned</option>
+                    <option value="@((int)TaskStatusModel.Blocked)">Blocked</option>
+                    <option value="@((int)TaskStatusModel.Completed)">Completed</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Priority</label>
+                <select class="form-select" value="@GetPriorityValue()" @onchange="OnPriorityChanged">
+                    <option value="">All Priorities</option>
+                    <option value="@((int)TaskPriority.Maximum)">Maximum</option>
+                    <option value="@((int)TaskPriority.High)">High</option>
+                    <option value="@((int)TaskPriority.Medium)">Medium</option>
+                    <option value="@((int)TaskPriority.Low)">Low</option>
+                    <option value="@((int)TaskPriority.Strategic)">Strategic</option>
+                    <option value="@((int)TaskPriority.Maintenance)">Maintenance</option>
+                    <option value="@((int)TaskPriority.Administrative)">Administrative</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Completion</label>
+                <select class="form-select" value="@GetCompletionValue()" @onchange="OnCompletionChanged">
+                    <option value="">All</option>
+                    <option value="false">Incomplete</option>
+                    <option value="true">Completed</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Search</label>
+                <input type="text" class="form-control" placeholder="Search tasks..." 
+                       @bind="SearchText" @bind:event="oninput" @oninput="OnSearchChanged" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Sort By</label>
+                <select class="form-select" @bind="SortBy" @bind:after="OnFilterChanged">
+                    <option value="created">Created Date</option>
+                    <option value="priority">Priority</option>
+                    <option value="status">Status</option>
+                    <option value="project">Project</option>
+                </select>
+            </div>
+        </div>
+        <div class="mt-3">
+            <button class="btn btn-sm btn-outline-secondary" @onclick="ClearFilters">Clear Filters</button>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public List<Project> Projects { get; set; } = new();
+
+    [Parameter]
+    public EventCallback<FilterOptions> OnFiltersChanged { get; set; }
+
+    [Parameter]
+    public int? InitialProjectId { get; set; }
+
+    [Parameter]
+    public TaskStatusModel? InitialStatus { get; set; }
+
+    [Parameter]
+    public TaskPriority? InitialPriority { get; set; }
+
+    [Parameter]
+    public bool? InitialCompletion { get; set; }
+
+    [Parameter]
+    public string InitialSearchText { get; set; } = string.Empty;
+
+    [Parameter]
+    public string InitialSortBy { get; set; } = "created";
+
+    private int? SelectedProjectId { get; set; }
+    private TaskStatusModel? SelectedStatus { get; set; }
+    private TaskPriority? SelectedPriority { get; set; }
+    private bool? SelectedCompletion { get; set; }
+    private string SearchText { get; set; } = string.Empty;
+    private string SortBy { get; set; } = "created";
+
+    protected override void OnParametersSet()
+    {
+        // Initialize from parameters if provided
+        if (InitialProjectId.HasValue)
+            SelectedProjectId = InitialProjectId;
+        if (InitialStatus.HasValue)
+            SelectedStatus = InitialStatus;
+        if (InitialPriority.HasValue)
+            SelectedPriority = InitialPriority;
+        if (InitialCompletion.HasValue)
+            SelectedCompletion = InitialCompletion;
+        if (!string.IsNullOrEmpty(InitialSearchText))
+            SearchText = InitialSearchText;
+        if (!string.IsNullOrEmpty(InitialSortBy))
+            SortBy = InitialSortBy;
+    }
+
+    private string GetStatusValue()
+    {
+        return SelectedStatus?.ToString("D") ?? "";
+    }
+
+    private string GetPriorityValue()
+    {
+        return SelectedPriority?.ToString("D") ?? "";
+    }
+
+    private string GetCompletionValue()
+    {
+        return SelectedCompletion?.ToString().ToLower() ?? "";
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (string.IsNullOrEmpty(value))
+        {
+            SelectedStatus = null;
+        }
+        else if (int.TryParse(value, out var intValue))
+        {
+            SelectedStatus = (TaskStatusModel)intValue;
+        }
+        await NotifyFilterChange();
+    }
+
+    private async Task OnPriorityChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (string.IsNullOrEmpty(value))
+        {
+            SelectedPriority = null;
+        }
+        else if (int.TryParse(value, out var intValue))
+        {
+            SelectedPriority = (TaskPriority)intValue;
+        }
+        await NotifyFilterChange();
+    }
+
+    private async Task OnCompletionChanged(ChangeEventArgs e)
+    {
+        var value = e.Value?.ToString();
+        if (string.IsNullOrEmpty(value))
+        {
+            SelectedCompletion = null;
+        }
+        else if (bool.TryParse(value, out var boolValue))
+        {
+            SelectedCompletion = boolValue;
+        }
+        await NotifyFilterChange();
+    }
+
+    private async Task OnFilterChanged()
+    {
+        await NotifyFilterChange();
+    }
+
+    private async Task OnSearchChanged(ChangeEventArgs e)
+    {
+        SearchText = e.Value?.ToString() ?? string.Empty;
+        await NotifyFilterChange();
+    }
+
+    private async Task NotifyFilterChange()
+    {
+        var options = new FilterOptions
+        {
+            ProjectId = SelectedProjectId,
+            Status = SelectedStatus,
+            Priority = SelectedPriority,
+            IsCompleted = SelectedCompletion,
+            SearchText = SearchText,
+            SortBy = SortBy
+        };
+        await OnFiltersChanged.InvokeAsync(options);
+    }
+
+    private async Task ClearFilters()
+    {
+        SelectedProjectId = null;
+        SelectedStatus = null;
+        SelectedPriority = null;
+        SelectedCompletion = null;
+        SearchText = string.Empty;
+        SortBy = "created";
+        await NotifyFilterChange();
+    }
+
+    public class FilterOptions
+    {
+        public int? ProjectId { get; set; }
+        public TaskStatusModel? Status { get; set; }
+        public TaskPriority? Priority { get; set; }
+        public bool? IsCompleted { get; set; }
+        public string SearchText { get; set; } = string.Empty;
+        public string SortBy { get; set; } = "created";
+    }
+}
+

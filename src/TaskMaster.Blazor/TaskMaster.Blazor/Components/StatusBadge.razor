@@ -1,0 +1,35 @@
+@using TaskMaster.Core.Models
+
+<span class="badge @GetStatusClass()">@GetStatusText()</span>
+
+@code {
+    [Parameter]
+    public TaskStatus Status { get; set; }
+
+    private string GetStatusClass()
+    {
+        return Status switch
+        {
+            TaskStatus.Completed => "bg-success",
+            TaskStatus.InProgress => "bg-primary",
+            TaskStatus.Planned => "bg-info",
+            TaskStatus.Blocked => "bg-danger",
+            TaskStatus.Pending => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetStatusText()
+    {
+        return Status switch
+        {
+            TaskStatus.Completed => "Completed",
+            TaskStatus.InProgress => "In Progress",
+            TaskStatus.Planned => "Planned",
+            TaskStatus.Blocked => "Blocked",
+            TaskStatus.Pending => "Pending",
+            _ => Status.ToString()
+        };
+    }
+}
+

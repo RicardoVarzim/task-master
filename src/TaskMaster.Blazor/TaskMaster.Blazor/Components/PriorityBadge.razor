@@ -1,0 +1,59 @@
+@using TaskMaster.Core.Models
+
+@if (Priority.HasValue)
+{
+    <span class="badge @GetPriorityClass()" title="@GetPriorityText()">
+        @GetPriorityIcon() @GetPriorityText()
+    </span>
+}
+
+@code {
+    [Parameter]
+    public TaskPriority? Priority { get; set; }
+
+    private string GetPriorityClass()
+    {
+        return Priority switch
+        {
+            TaskPriority.Maximum => "bg-danger",
+            TaskPriority.High => "bg-warning",
+            TaskPriority.Medium => "bg-info",
+            TaskPriority.Low => "bg-secondary",
+            TaskPriority.Strategic => "bg-primary",
+            TaskPriority.Maintenance => "bg-dark",
+            TaskPriority.Administrative => "bg-light text-dark",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetPriorityIcon()
+    {
+        return Priority switch
+        {
+            TaskPriority.Maximum => "🔴",
+            TaskPriority.High => "🟠",
+            TaskPriority.Medium => "🟡",
+            TaskPriority.Low => "🔵",
+            TaskPriority.Strategic => "🟣",
+            TaskPriority.Maintenance => "📝",
+            TaskPriority.Administrative => "📌",
+            _ => ""
+        };
+    }
+
+    private string GetPriorityText()
+    {
+        return Priority switch
+        {
+            TaskPriority.Maximum => "Maximum",
+            TaskPriority.High => "High",
+            TaskPriority.Medium => "Medium",
+            TaskPriority.Low => "Low",
+            TaskPriority.Strategic => "Strategic",
+            TaskPriority.Maintenance => "Maintenance",
+            TaskPriority.Administrative => "Administrative",
+            _ => "None"
+        };
+    }
+}
+
