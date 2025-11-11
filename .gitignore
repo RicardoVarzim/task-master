@@ -3,6 +3,15 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+# Build output directories - MUST be at the top to catch all bin/obj folders
+# These patterns cover all variations (case-insensitive, root and nested)
+**/bin/
+**/obj/
+**/[Bb]in/
+**/[Oo]bj/
+bin/
+obj/
+
 # User-specific files
 *.rsuser
 *.suo
@@ -27,8 +36,6 @@ x86/
 [Aa][Rr][Mm]/
 [Aa][Rr][Mm]64/
 bld/
-[Bb]in/
-[Oo]bj/
 [Ll]og/
 [Ll]ogs/
 
@@ -385,39 +392,12 @@ $RECYCLE.BIN/
 # Mac desktop service store files
 .DS_Store
 
-# Rider
-.idea/
-*.sln.iml
-
 # JetBrains Rider
 .idea/
 *.sln.iml
 
-# User-specific files
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-
-# Build results
-[Dd]ebug/
-[Dd]ebugPublic/
-[Rr]elease/
-[Rr]eleases/
-x64/
-x86/
-[Ww][Ii][Nn]32/
-[Aa][Rr][Mm]/
-[Aa][Rr][Mm]64/
-bld/
-[Bb]in/
-[Oo]bj/
-[Ll]og/
-[Ll]ogs/
-
 # .NET Core / .NET 8 specific
-# Note: These are already covered by [Bb]in/ and [Oo]bj/ patterns above
-# but keeping for clarity
+# Note: bin/ and obj/ folders are already covered at the top of this file
 *.dll
 *.exe
 *.pdb

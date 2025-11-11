@@ -22,11 +22,15 @@ var connectionString = $"Data Source={dbPath}";
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(connectionString));
 
+// Register HttpClient
+builder.Services.AddHttpClient();
+
 // Register services
 builder.Services.AddScoped<TaskService>();
 builder.Services.AddScoped<MetricsService>();
 builder.Services.AddScoped<WeeklyReportService>();
 builder.Services.AddScoped<HistoryService>();
+builder.Services.AddScoped<SyncService>();
 
 // Configure SignalR Hub connection
 builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.Client.HubConnection>(sp =>

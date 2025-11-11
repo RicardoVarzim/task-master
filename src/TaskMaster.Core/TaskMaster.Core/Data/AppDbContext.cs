@@ -25,6 +25,7 @@ public class AppDbContext : DbContext
     public DbSet<WeeklyReport> WeeklyReports { get; set; }
     public DbSet<CheckInHistory> CheckInHistories { get; set; }
     public DbSet<TaskMetrics> TaskMetrics { get; set; }
+    public DbSet<SyncHistory> SyncHistories { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -169,6 +170,18 @@ public class AppDbContext : DbContext
         {
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.ProjectId, e.PeriodStart, e.PeriodEnd });
+            entity.HasOne(e => e.Project)
+                .WithMany()
+                .HasForeignKey(e => e.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // SyncHistory configuration
+        modelBuilder.Entity<SyncHistory>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.ProjectId, e.StartedAt });
+            entity.Property(e => e.ErrorMessage).HasMaxLength(1000);
             entity.HasOne(e => e.Project)
                 .WithMany()
                 .HasForeignKey(e => e.ProjectId)

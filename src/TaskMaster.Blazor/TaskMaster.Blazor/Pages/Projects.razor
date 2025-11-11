@@ -6,6 +6,7 @@
 @using TaskStatusModel = TaskMaster.Core.Models.TaskStatus
 @inject HttpClient HttpClient
 @inject TaskService TaskService
+@inject SyncService SyncService
 @inject NavigationManager Navigation
 
 <PageTitle>Task Master - Projects</PageTitle>
@@ -108,6 +109,10 @@
                                     }
                                     Sync
                                 </button>
+                                <button class="btn btn-sm btn-outline-info" 
+                                        @onclick="() => ShowSyncHistory(project.Id)">
+                                    <span class="oi oi-clock me-1"></span>History
+                                </button>
                                 <button class="btn btn-sm btn-outline-secondary" 
                                         @onclick="() => ViewTasks(project.Id)">
                                     View Tasks
@@ -157,6 +162,108 @@
     <div class="modal-backdrop show"></div>
 }
 
+@if (showSyncHistory && selectedProjectId.HasValue)
+{
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Sync History</h5>
+                    <button type="button" class="btn-close" @onclick="CloseSyncHistory"></button>
+                </div>
+                <div class="modal-body">
+                    @if (isLoadingHistory)
+                    {
+                        <div class="text-center py-3">
+                            <div class="spinner-border" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                    }
+                    else if (syncHistory.Any())
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Type</th>
+                                        <th>Status</th>
+                                        <th>Files</th>
+                                        <th>Tasks</th>
+                                        <th>Duration</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var history in syncHistory)
+                                    {
+                                        <tr>
+                                            <td>@history.StartedAt.ToString("g")</td>
+                                            <td>
+                                                <span class="badge bg-secondary">@history.SyncType</span>
+                                            </td>
+                                            <td>
+                                                @if (history.Status == SyncStatus.Success)
+                                                {
+                                                    <span class="badge bg-success">Success</span>
+                                                }
+                                                else if (history.Status == SyncStatus.Failed)
+                                                {
+                                                    <span class="badge bg-danger">Failed</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-warning">Partial</span>
+                                                }
+                                            </td>
+                                            <td>@history.FilesProcessed</td>
+                                            <td>
+                                                <small>
+                                                    Found: @history.TasksFound<br/>
+                                                    Added: @history.TasksAdded<br/>
+                                                    Removed: @history.TasksRemoved
+                                                </small>
+                                            </td>
+                                            <td>
+                                                @if (history.DurationMs.HasValue)
+                                                {
+                                                    <span>@(history.DurationMs.Value)ms</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                        @if (!string.IsNullOrEmpty(history.ErrorMessage))
+                                        {
+                                            <tr>
+                                                <td colspan="6" class="text-danger small">
+                                                    <strong>Error:</strong> @history.ErrorMessage
+                                                </td>
+                                            </tr>
+                                        }
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-info">
+                            No sync history found for this project.
+                        </div>
+                    }
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CloseSyncHistory">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop show"></div>
+}
+
 @code {
     private List<Project> ProjectList = new();
     private List<TaskModel> allTasks = new();
@@ -167,6 +274,10 @@
     private string newProjectPath = "";
     private int totalTasks = 0;
     private int completedTasks = 0;
+    private bool showSyncHistory = false;
+    private int? selectedProjectId = null;
+    private List<SyncHistory> syncHistory = new();
+    private bool isLoadingHistory = false;
 
     protected override async System.Threading.Tasks.Task OnInitializedAsync()
     {
@@ -341,6 +452,33 @@
     private void ViewTasks(int projectId)
     {
         Navigation.NavigateTo($"/tasks?projectId={projectId}");
+    }
+
+    private async System.Threading.Tasks.Task ShowSyncHistory(int projectId)
+    {
+        selectedProjectId = projectId;
+        showSyncHistory = true;
+        isLoadingHistory = true;
+        try
+        {
+            syncHistory = await SyncService.GetSyncHistoryAsync(projectId, 50);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading sync history: {ex.Message}");
+            syncHistory = new List<SyncHistory>();
+        }
+        finally
+        {
+            isLoadingHistory = false;
+        }
+    }
+
+    private void CloseSyncHistory()
+    {
+        showSyncHistory = false;
+        selectedProjectId = null;
+        syncHistory = new List<SyncHistory>();
     }
 
     private class ProjectStats
