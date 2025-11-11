@@ -3,6 +3,8 @@ name: CD
 on:
   push:
     branches: [ main ]
+    tags:
+      - 'v*'
     paths-ignore:
       - '**.md'
       - '.gitignore'
@@ -13,9 +15,45 @@ jobs:
     name: Build MSIX Package
     runs-on: windows-latest
     
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      is-release: ${{ steps.version.outputs.is-release }}
+      tag-name: ${{ steps.version.outputs.tag-name }}
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Needed for tag detection
+    
+    - name: Extract version from tag
+      id: version
+      shell: pwsh
+      run: |
+        if ($env:GITHUB_REF -like 'refs/tags/v*') {
+          $tagName = $env:GITHUB_REF -replace 'refs/tags/', ''
+          $version = $tagName -replace '^v', ''
+          Write-Host "Tag detected: $tagName"
+          Write-Host "Version: $version"
+          Write-Host "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "is-release=true" >> $env:GITHUB_OUTPUT
+          Write-Host "tag-name=$tagName" >> $env:GITHUB_OUTPUT
+        } else {
+          # Use version from manifest or default
+          $manifestPath = "src\TaskMaster.Host\Package.appxmanifest"
+          if (Test-Path $manifestPath) {
+            $manifest = [xml](Get-Content $manifestPath)
+            $version = $manifest.Package.Identity.Version
+          } else {
+            $version = "1.0.0.0"
+          }
+          Write-Host "No tag detected, using version: $version"
+          Write-Host "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "is-release=false" >> $env:GITHUB_OUTPUT
+          Write-Host "tag-name=" >> $env:GITHUB_OUTPUT
+        }
+      env:
+        GITHUB_REF: ${{ github.ref }}
     
     - name: Setup .NET SDK
       uses: actions/setup-dotnet@v4
@@ -126,4 +164,57 @@ jobs:
         path: dist/msix/*.cer
         retention-days: 90
         if-no-files-found: warn
+    
+    - name: Create GitHub Release
+      if: steps.version.outputs.is-release == 'true'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          dist/msix/*.msix
+          dist/msix/*.cer
+        tag_name: ${{ steps.version.outputs.tag-name }}
+        name: Task Master ${{ steps.version.outputs.tag-name }}
+        body: |
+          ## Task Master ${{ steps.version.outputs.tag-name }}
+          
+          **Version:** ${{ steps.version.outputs.version }}
+          **Build:** #${{ github.run_number }}
+          **Commit:** [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+          
+          ### 📦 Installation Instructions
+          
+          1. **Download the certificate** (`TaskMasterDemo.cer`)
+          2. **Install the certificate:**
+             - Right-click on `TaskMasterDemo.cer` → **Install Certificate**
+             - Select **Local Machine** → **Next**
+             - Choose **Place all certificates in the following store**
+             - Click **Browse** → Select **Trusted Root Certification Authorities** → **OK**
+             - Click **Next** → **Finish**
+          3. **Install the MSIX package:**
+             - Double-click `TaskMaster_${{ steps.version.outputs.version }}_x64.msix`
+             - Follow the installation wizard
+          
+          ### 📋 Files Included
+          
+          - **MSIX Package:** `TaskMaster_${{ steps.version.outputs.version }}_x64.msix`
+          - **Certificate:** `TaskMasterDemo.cer` (required for installation)
+          
+          ### ⚠️ Important Notes
+          
+          - This is a self-signed certificate for development/testing purposes
+          - The certificate must be installed before installing the MSIX package
+          - For production releases, a proper code signing certificate should be used
+          
+          ### 🔧 System Requirements
+          
+          - Windows 10 version 1809 (build 17763) or later
+          - Windows 11
+          
+          ---
+          
+          **Full Changelog:** https://github.com/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.sha }}
+        draft: false
+        prerelease: ${{ contains(steps.version.outputs.tag-name, 'alpha') || contains(steps.version.outputs.tag-name, 'beta') || contains(steps.version.outputs.tag-name, 'rc') }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
