@@ -75,7 +75,7 @@ public class FileWatcherService : IDisposable
     /// <summary>
     /// Starts monitoring a specific project
     /// </summary>
-    public async System.Threading.Tasks.Task StartMonitoringProjectAsync(Project project)
+    public System.Threading.Tasks.Task StartMonitoringProjectAsync(Project project)
     {
         if (project == null)
         {
@@ -87,7 +87,7 @@ public class FileWatcherService : IDisposable
         {
             _logger.LogWarning("Project {ProjectId} ({ProjectName}) is already being monitored", 
                 project.Id, project.Name);
-            return;
+            return System.Threading.Tasks.Task.CompletedTask;
         }
 
         // Validate project path
@@ -101,7 +101,7 @@ public class FileWatcherService : IDisposable
         {
             _logger.LogWarning("Project directory not found for project {ProjectId}: {Path}", 
                 project.Id, project.FullPath);
-            return;
+            return System.Threading.Tasks.Task.CompletedTask;
         }
 
         var tasksFolder = Path.Combine(project.FullPath, _options.TasksFolderName);
@@ -132,6 +132,8 @@ public class FileWatcherService : IDisposable
 
             _logger.LogInformation("Started monitoring project {ProjectId} ({ProjectName}) at {Path}", 
                 project.Id, project.Name, tasksFolder);
+            
+            return System.Threading.Tasks.Task.CompletedTask;
         }
         catch (Exception ex)
         {
