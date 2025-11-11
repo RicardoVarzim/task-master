@@ -25,13 +25,28 @@ jobs:
         dotnet-version: ${{ matrix.dotnet-version }}
     
     - name: Restore dependencies
-      run: dotnet restore TaskMaster.sln
+      run: |
+        # Restore projects excluding Windows-specific Host project
+        dotnet restore src/TaskMaster.Core/TaskMaster.Core/TaskMaster.Core.csproj
+        dotnet restore src/TaskMaster.API/TaskMaster.API/TaskMaster.API.csproj
+        dotnet restore src/TaskMaster.Blazor/TaskMaster.Blazor/TaskMaster.Blazor.csproj
+        dotnet restore src/TaskMaster.Worker/TaskMaster.Worker/TaskMaster.Worker.csproj
+        dotnet restore tests/TaskMaster.Core.Tests/TaskMaster.Core.Tests/TaskMaster.Core.Tests.csproj
+        dotnet restore tests/TaskMaster.API.Tests/TaskMaster.API.Tests.csproj
     
     - name: Build solution
-      run: dotnet build TaskMaster.sln --configuration Release --no-restore
+      run: |
+        # Build projects excluding Windows-specific Host project
+        dotnet build src/TaskMaster.Core/TaskMaster.Core/TaskMaster.Core.csproj --configuration Release --no-restore
+        dotnet build src/TaskMaster.API/TaskMaster.API/TaskMaster.API.csproj --configuration Release --no-restore
+        dotnet build src/TaskMaster.Blazor/TaskMaster.Blazor/TaskMaster.Blazor.csproj --configuration Release --no-restore
+        dotnet build src/TaskMaster.Worker/TaskMaster.Worker/TaskMaster.Worker.csproj --configuration Release --no-restore
     
     - name: Run tests
-      run: dotnet test TaskMaster.sln --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+      run: |
+        # Run tests excluding Windows-specific Host project
+        dotnet test tests/TaskMaster.Core.Tests/TaskMaster.Core.Tests/TaskMaster.Core.Tests.csproj --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+        dotnet test tests/TaskMaster.API.Tests/TaskMaster.API.Tests.csproj --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
     
     - name: Upload test results
       uses: actions/upload-artifact@v4

@@ -1,0 +1,63 @@
+name: CD
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - '.gitignore'
+      - 'docs/**'
+
+jobs:
+  build-msix:
+    name: Build MSIX Package
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup .NET SDK
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Install Windows SDK
+      uses: microsoft/setup-msbuild@v1.1
+      with:
+        msbuild-architecture: x64
+    
+    - name: Setup Windows SDK Path
+      shell: pwsh
+      run: |
+        $sdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
+        $sdkVersion = Get-ChildItem -Path $sdkPath -Directory | Sort-Object Name -Descending | Select-Object -First 1
+        $makeAppxPath = Join-Path $sdkVersion.FullName "x64\MakeAppx.exe"
+        if (Test-Path $makeAppxPath) {
+          Write-Host "MakeAppx found at: $makeAppxPath"
+          echo "MAKEAPPX_PATH=$makeAppxPath" >> $env:GITHUB_ENV
+        } else {
+          Write-Error "MakeAppx.exe not found"
+          exit 1
+        }
+    
+    - name: Build MSIX Package
+      shell: pwsh
+      run: |
+        .\scripts\build-msix.ps1 -Configuration Release -OutputPath ".\dist\msix"
+    
+    - name: Upload MSIX Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: taskmaster-msix
+        path: dist/msix/*.msix
+        retention-days: 90
+    
+    - name: Upload Certificate
+      uses: actions/upload-artifact@v4
+      with:
+        name: taskmaster-certificate
+        path: dist/msix/*.cer
+        retention-days: 90
+        if-no-files-found: warn
+
