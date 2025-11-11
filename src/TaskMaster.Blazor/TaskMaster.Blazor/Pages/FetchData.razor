@@ -1,7 +1,7 @@
 ﻿@page "/fetchdata"
 
 @using TaskMaster.Blazor.Data
-@using System.Threading.Tasks
+@using TaskModel = TaskMaster.Core.Models.Task
 @inject WeatherForecastService ForecastService
 
 <h1>Weather forecast</h1>
@@ -40,7 +40,7 @@ else
 @code {
     private WeatherForecast[] forecasts;
 
-    protected override async Task OnInitializedAsync()
+    protected override async System.Threading.Tasks.Task OnInitializedAsync()
     {
         forecasts = await ForecastService.GetForecastAsync(DateTime.Now);
     }
