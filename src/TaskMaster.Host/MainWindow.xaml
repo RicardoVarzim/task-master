@@ -5,9 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TaskMaster.Host"
         mc:Ignorable="d"
-        Title="Task Master - Host" Height="400" Width="600"
+        Title="Task Master - Host" Height="500" Width="600"
         WindowStartupLocation="CenterScreen"
-        ResizeMode="CanMinimize">
+        ResizeMode="CanResize">
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -22,7 +22,8 @@
         </StackPanel>
 
         <!-- Services Status -->
-        <StackPanel Grid.Row="1">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
             <!-- API Status -->
             <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="5" Padding="15" Margin="0,0,0,15">
                 <Grid>
@@ -76,7 +77,8 @@
                     </StackPanel>
                 </Grid>
             </Border>
-        </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
 
         <!-- Actions -->
         <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">

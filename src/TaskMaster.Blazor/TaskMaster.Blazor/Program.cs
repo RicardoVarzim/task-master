@@ -47,8 +47,14 @@ if (!app.Environment.IsDevelopment())
     app.UseExceptionHandler("/Error");
     app.UseHsts();
 }
+else
+{
+    // In development, show detailed error pages
+    app.UseDeveloperExceptionPage();
+}
 
-app.UseHttpsRedirection();
+// Only use HTTPS redirection if HTTPS is configured
+// app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 

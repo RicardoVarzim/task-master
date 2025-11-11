@@ -1,5 +1,5 @@
-# Script para criar pacote MSIX do Task Master
-# Requer: Windows SDK, .NET 8 SDK
+# Script to create MSIX package for Task Master
+# Requires: Windows SDK, .NET 8 SDK
 
 param(
     [string]$Configuration = "Release",
@@ -11,44 +11,99 @@ $ErrorActionPreference = "Stop"
 
 Write-Host "=== Task Master MSIX Build Script ===" -ForegroundColor Cyan
 
-# Verificar pré-requisitos
-Write-Host "`nVerificando pré-requisitos..." -ForegroundColor Yellow
+# Check prerequisites
+Write-Host "`nChecking prerequisites..." -ForegroundColor Yellow
 
 if (-not (Get-Command dotnet -ErrorAction SilentlyContinue)) {
-    Write-Host "ERRO: .NET SDK não encontrado!" -ForegroundColor Red
+    Write-Host "ERROR: .NET SDK not found!" -ForegroundColor Red
     exit 1
 }
 
-# Criar diretórios
+# Create directories
 $packageDir = Join-Path $OutputPath "package"
 $assetsDir = Join-Path $packageDir "Assets"
 
+# Try to close running processes before cleaning
+Write-Host "`nChecking for running processes..." -ForegroundColor Yellow
+
+# Close TaskMaster.Host first
+$hostProcesses = Get-Process -Name "TaskMaster.Host" -ErrorAction SilentlyContinue
+if ($hostProcesses) {
+    Write-Host "Closing TaskMaster.Host processes..." -ForegroundColor Yellow
+    $hostProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 2
+}
+
+# Close dotnet processes that may be running API/Worker/Blazor
+# Note: This may close other dotnet processes too, but it's necessary to ensure files are not locked
+$dotnetProcesses = Get-Process -Name "dotnet" -ErrorAction SilentlyContinue
+if ($dotnetProcesses) {
+    Write-Host "WARNING: Found running dotnet processes. They will be closed to allow the build." -ForegroundColor Yellow
+    Write-Host "If you have other .NET projects running, close them manually before continuing." -ForegroundColor Yellow
+    $dotnetProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 3
+}
+
+# Wait a bit more to ensure processes are closed
+Start-Sleep -Seconds 1
+
+# Check if there are still locked files
+if (Test-Path $packageDir) {
+    $lockedFiles = @()
+    Get-ChildItem -Path $packageDir -Filter "*.dll" -ErrorAction SilentlyContinue | ForEach-Object {
+        try {
+            $fileStream = [System.IO.File]::Open($_.FullName, 'Open', 'ReadWrite', 'None')
+            $fileStream.Close()
+        } catch {
+            $lockedFiles += $_.Name
+        }
+    }
+    
+    if ($lockedFiles.Count -gt 0) {
+        Write-Host "WARNING: Some files are still locked: $($lockedFiles -join ', ')" -ForegroundColor Yellow
+        Write-Host "Attempting to remove directory anyway..." -ForegroundColor Yellow
+    }
+}
+
 if (Test-Path $OutputPath) {
-    Remove-Item $OutputPath -Recurse -Force
+    Remove-Item $OutputPath -Recurse -Force -ErrorAction SilentlyContinue
+    Start-Sleep -Seconds 1
 }
 
 New-Item -ItemType Directory -Path $packageDir -Force | Out-Null
 New-Item -ItemType Directory -Path $assetsDir -Force | Out-Null
 
-Write-Host "`n1. Publicando aplicação..." -ForegroundColor Yellow
+Write-Host "`n1. Publishing Host application..." -ForegroundColor Yellow
 $hostProject = "src\TaskMaster.Host\TaskMaster.Host.csproj"
 dotnet publish $hostProject -c $Configuration -r win-x64 --self-contained true -p:PublishSingleFile=true -o $packageDir
 
-# Copiar assets
-Write-Host "`n2. Copiando recursos..." -ForegroundColor Yellow
+Write-Host "`n1.1. Publishing API (without single-file)..." -ForegroundColor Yellow
+$apiProject = "src\TaskMaster.API\TaskMaster.API\TaskMaster.API.csproj"
+dotnet publish $apiProject -c $Configuration -r win-x64 --self-contained true -o $packageDir
+
+Write-Host "`n1.2. Publishing Worker (without single-file)..." -ForegroundColor Yellow
+$workerProject = "src\TaskMaster.Worker\TaskMaster.Worker\TaskMaster.Worker.csproj"
+dotnet publish $workerProject -c $Configuration -r win-x64 --self-contained true -o $packageDir
+
+Write-Host "`n1.3. Publishing Blazor (without single-file)..." -ForegroundColor Yellow
+$blazorProject = "src\TaskMaster.Blazor\TaskMaster.Blazor\TaskMaster.Blazor.csproj"
+dotnet publish $blazorProject -c $Configuration -r win-x64 --self-contained true -o $packageDir
+
+# Copy assets
+Write-Host "`n2. Copying assets..." -ForegroundColor Yellow
 $sourceAssets = "src\TaskMaster.Host\Assets"
 if (Test-Path $sourceAssets) {
     Copy-Item "$sourceAssets\*" -Destination $assetsDir -Recurse -Force
 }
 
-# Copiar manifest
-Write-Host "`n3. Copiando manifest..." -ForegroundColor Yellow
+# Copy manifest
+Write-Host "`n3. Copying manifest..." -ForegroundColor Yellow
 Copy-Item "src\TaskMaster.Host\Package.appxmanifest" -Destination $packageDir -Force
 
-# Criar certificado se não existir
+# Create certificate if it doesn't exist
 $certPath = Join-Path $OutputPath "TaskMasterDemo.pfx"
 if (-not (Test-Path $certPath)) {
-    Write-Host "`n4. Criando certificado self-signed..." -ForegroundColor Yellow
+    Write-Host "`n4. Creating self-signed certificate..." -ForegroundColor Yellow
     $cert = New-SelfSignedCertificate `
         -Type Custom `
         -Subject "CN=TaskMaster Demo" `
@@ -60,18 +115,18 @@ if (-not (Test-Path $certPath)) {
     $password = ConvertTo-SecureString -String "TaskMaster123!" -Force -AsPlainText
     Export-PfxCertificate -Cert $cert -FilePath $certPath -Password $password
     
-    # Exportar certificado público também
+    # Export public certificate as well
     $cerPath = Join-Path $OutputPath "TaskMasterDemo.cer"
     Export-Certificate -Cert $cert -FilePath $cerPath
     
-    Write-Host "Certificado criado: $certPath" -ForegroundColor Green
-    Write-Host "IMPORTANTE: Instale o certificado TaskMasterDemo.cer na raiz de certificados confiáveis antes de instalar o pacote!" -ForegroundColor Yellow
+    Write-Host "Certificate created: $certPath" -ForegroundColor Green
+    Write-Host "IMPORTANT: Install TaskMasterDemo.cer certificate in trusted root certificate store before installing the package!" -ForegroundColor Yellow
 }
 
-# Encontrar MakeAppx.exe
-Write-Host "`n5. Procurando MakeAppx.exe..." -ForegroundColor Yellow
+# Find MakeAppx.exe
+Write-Host "`n5. Searching for MakeAppx.exe..." -ForegroundColor Yellow
 
-# Tentar múltiplas localizações
+# Try multiple locations
 $sdkPaths = @(
     "${env:ProgramFiles(x86)}\Windows Kits\10\bin",
     "${env:ProgramFiles}\Windows Kits\10\bin",
@@ -95,46 +150,46 @@ foreach ($path in $sdkPaths) {
 }
 
 if (-not $makeAppx) {
-    Write-Host "AVISO: MakeAppx.exe não encontrado!" -ForegroundColor Yellow
-    Write-Host "O Windows SDK não está instalado ou não está no caminho esperado." -ForegroundColor Yellow
-    Write-Host "`nOpções:" -ForegroundColor Yellow
-    Write-Host "  1. Instale o Windows 10/11 SDK: https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/" -ForegroundColor White
-    Write-Host "  2. Execute com -SkipMSIX para apenas publicar a aplicação sem criar o pacote MSIX" -ForegroundColor White
-    Write-Host "`nA aplicação foi publicada em: $packageDir" -ForegroundColor Green
+    Write-Host "WARNING: MakeAppx.exe not found!" -ForegroundColor Yellow
+    Write-Host "Windows SDK is not installed or not in the expected path." -ForegroundColor Yellow
+    Write-Host "`nOptions:" -ForegroundColor Yellow
+    Write-Host "  1. Install Windows 10/11 SDK: https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/" -ForegroundColor White
+    Write-Host "  2. Run with -SkipMSIX to only publish the application without creating the MSIX package" -ForegroundColor White
+    Write-Host "`nApplication published to: $packageDir" -ForegroundColor Green
     
     if (-not $SkipMSIX) {
-        Write-Host "`nPara continuar sem criar o pacote MSIX, execute:" -ForegroundColor Yellow
+        Write-Host "`nTo continue without creating the MSIX package, run:" -ForegroundColor Yellow
         Write-Host "  .\scripts\build-msix.ps1 -SkipMSIX" -ForegroundColor White
         exit 1
     } else {
-        Write-Host "`nContinuando sem criar pacote MSIX..." -ForegroundColor Yellow
-        Write-Host "`n=== Concluído ===" -ForegroundColor Cyan
-        Write-Host "Aplicação publicada em: $packageDir" -ForegroundColor Green
+        Write-Host "`nContinuing without creating MSIX package..." -ForegroundColor Yellow
+        Write-Host "`n=== Completed ===" -ForegroundColor Cyan
+        Write-Host "Application published to: $packageDir" -ForegroundColor Green
         exit 0
     }
 }
 
-Write-Host "MakeAppx encontrado: $($makeAppx.FullName)" -ForegroundColor Green
+Write-Host "MakeAppx found: $($makeAppx.FullName)" -ForegroundColor Green
 
 if ($SkipMSIX) {
-    Write-Host "`nPulando criação do pacote MSIX (parâmetro -SkipMSIX)" -ForegroundColor Yellow
-    Write-Host "`n=== Concluído ===" -ForegroundColor Cyan
-    Write-Host "Aplicação publicada em: $packageDir" -ForegroundColor Green
+    Write-Host "`nSkipping MSIX package creation (parameter -SkipMSIX)" -ForegroundColor Yellow
+    Write-Host "`n=== Completed ===" -ForegroundColor Cyan
+    Write-Host "Application published to: $packageDir" -ForegroundColor Green
     exit 0
 }
 
-# Criar pacote MSIX
-Write-Host "`n6. Criando pacote MSIX..." -ForegroundColor Yellow
+# Create MSIX package
+Write-Host "`n6. Creating MSIX package..." -ForegroundColor Yellow
 $msixPath = Join-Path $OutputPath "TaskMaster_1.0.0.0_x64.msix"
 & $makeAppx.FullName pack /d $packageDir /p $msixPath /o
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "ERRO ao criar pacote MSIX!" -ForegroundColor Red
+    Write-Host "ERROR creating MSIX package!" -ForegroundColor Red
     exit 1
 }
 
-# Assinar pacote
-Write-Host "`n7. Assinando pacote..." -ForegroundColor Yellow
+# Sign package
+Write-Host "`n7. Signing package..." -ForegroundColor Yellow
 $signTool = Get-ChildItem -Path $sdkPath -Filter "signtool.exe" -Recurse -ErrorAction SilentlyContinue | 
     Sort-Object FullName -Descending | 
     Select-Object -First 1
@@ -144,17 +199,16 @@ if ($signTool) {
     & $signTool.FullName sign /f $certPath /p $password /fd SHA256 $msixPath
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "Pacote assinado com sucesso!" -ForegroundColor Green
+        Write-Host "Package signed successfully!" -ForegroundColor Green
     } else {
-        Write-Host "AVISO: Falha ao assinar pacote. O pacote ainda pode ser instalado em modo desenvolvedor." -ForegroundColor Yellow
+        Write-Host "WARNING: Failed to sign package. Package can still be installed in developer mode." -ForegroundColor Yellow
     }
 } else {
-    Write-Host "AVISO: SignTool não encontrado. Pacote não assinado." -ForegroundColor Yellow
+    Write-Host "WARNING: SignTool not found. Package not signed." -ForegroundColor Yellow
 }
 
-Write-Host "`n=== Concluído ===" -ForegroundColor Cyan
-Write-Host "Pacote MSIX criado: $msixPath" -ForegroundColor Green
-Write-Host "`nPara instalar:" -ForegroundColor Yellow
-Write-Host "  1. Instale o certificado TaskMasterDemo.cer na raiz de certificados confiáveis" -ForegroundColor White
-Write-Host "  2. Execute: Add-AppxPackage -Path `"$msixPath`"" -ForegroundColor White
-
+Write-Host "`n=== Completed ===" -ForegroundColor Cyan
+Write-Host "MSIX package created: $msixPath" -ForegroundColor Green
+Write-Host "`nTo install:" -ForegroundColor Yellow
+Write-Host "  1. Install TaskMasterDemo.cer certificate in trusted root certificate store" -ForegroundColor White
+Write-Host "  2. Run: Add-AppxPackage -Path `"$msixPath`"" -ForegroundColor White

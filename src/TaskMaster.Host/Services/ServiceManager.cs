@@ -75,7 +75,8 @@ public class ServiceManager
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
-                    WorkingDirectory = Path.GetDirectoryName(apiDll)
+                    WorkingDirectory = Path.GetDirectoryName(apiDll),
+                    EnvironmentVariables = { ["ASPNETCORE_ENVIRONMENT"] = "Development" }
                 }
             };
 
@@ -93,9 +94,9 @@ public class ServiceManager
         }
     }
 
-    public async Task StartWorkerAsync()
+    public Task StartWorkerAsync()
     {
-        if (IsWorkerRunning) return;
+        if (IsWorkerRunning) return Task.CompletedTask;
 
         try
         {
@@ -119,12 +120,14 @@ public class ServiceManager
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
-                    WorkingDirectory = Path.GetDirectoryName(workerDll)
+                    WorkingDirectory = Path.GetDirectoryName(workerDll),
+                    EnvironmentVariables = { ["ASPNETCORE_ENVIRONMENT"] = "Development" }
                 }
             };
 
             _workerProcess.Start();
             IsWorkerRunning = true;
+            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
@@ -160,7 +163,8 @@ public class ServiceManager
                     CreateNoWindow = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
-                    WorkingDirectory = Path.GetDirectoryName(blazorDll)
+                    WorkingDirectory = Path.GetDirectoryName(blazorDll),
+                    EnvironmentVariables = { ["ASPNETCORE_ENVIRONMENT"] = "Development" }
                 }
             };
 
@@ -252,14 +256,26 @@ public class ServiceManager
 
     private string? FindDll(string dllName, params string[] searchPaths)
     {
+        // First, try the base directory (where the Host exe is located)
+        var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        var basePath = Path.Combine(baseDir, dllName);
+        if (File.Exists(basePath))
+        {
+            return basePath;
+        }
+
+        // Then try the provided search paths
         foreach (var path in searchPaths)
         {
+            if (string.IsNullOrEmpty(path)) continue;
+            
             var fullPath = Path.Combine(path, dllName);
             if (File.Exists(fullPath))
             {
                 return fullPath;
             }
         }
+        
         return null;
     }
 
