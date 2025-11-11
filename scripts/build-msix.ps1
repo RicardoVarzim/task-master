@@ -99,6 +99,8 @@ if (Test-Path $sourceAssets) {
 # Copy manifest
 Write-Host "`n3. Copying manifest..." -ForegroundColor Yellow
 Copy-Item "src\TaskMaster.Host\Package.appxmanifest" -Destination $packageDir -Force
+# Rename to AppxManifest.xml (required by MakeAppx.exe)
+Rename-Item -Path (Join-Path $packageDir "Package.appxmanifest") -NewName "AppxManifest.xml" -Force
 
 # Create certificate if it doesn't exist
 $certPath = Join-Path $OutputPath "TaskMasterDemo.pfx"
