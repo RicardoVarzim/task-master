@@ -7,7 +7,7 @@
         <div class="row g-3">
             <div class="col-md-3">
                 <label class="form-label">Project</label>
-                <select class="form-select" @bind="SelectedProjectId" @bind:after="OnFilterChanged">
+                <select class="form-select" @bind="SelectedProjectId" @bind:after="HandleFilterChanged">
                     <option value="">All Projects</option>
                     @foreach (var project in Projects)
                     {
@@ -50,11 +50,11 @@
             <div class="col-md-6">
                 <label class="form-label">Search</label>
                 <input type="text" class="form-control" placeholder="Search tasks..." 
-                       @bind="SearchText" @bind:event="oninput" @bind:after="OnSearchChanged" />
+                       value="@SearchText" @oninput="HandleSearchInput" />
             </div>
             <div class="col-md-6">
                 <label class="form-label">Sort By</label>
-                <select class="form-select" @bind="SortBy" @bind:after="OnFilterChanged">
+                <select class="form-select" @bind="SortBy" @bind:after="HandleFilterChanged">
                     <option value="created">Created Date</option>
                     <option value="priority">Priority</option>
                     <option value="status">Status</option>
@@ -174,12 +174,12 @@
         await NotifyFilterChange();
     }
 
-    private async System.Threading.Tasks.Task OnFilterChanged()
+    private async System.Threading.Tasks.Task HandleFilterChanged()
     {
         await NotifyFilterChange();
     }
 
-    private async System.Threading.Tasks.Task OnSearchChanged(ChangeEventArgs e)
+    private async System.Threading.Tasks.Task HandleSearchInput(ChangeEventArgs e)
     {
         SearchText = e.Value?.ToString() ?? string.Empty;
         await NotifyFilterChange();

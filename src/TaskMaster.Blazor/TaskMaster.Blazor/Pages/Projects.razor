@@ -1,7 +1,9 @@
 @page "/projects"
 @using TaskMaster.Core.Models
 @using TaskMaster.Blazor.Services
+@using System.Net.Http.Json
 @using TaskModel = TaskMaster.Core.Models.Task
+@using TaskStatusModel = TaskMaster.Core.Models.TaskStatus
 @inject HttpClient HttpClient
 @inject TaskService TaskService
 @inject NavigationManager Navigation
@@ -229,9 +231,9 @@
         {
             TotalTasks = projectTasks.Count,
             CompletedTasks = projectTasks.Count(t => t.IsCompleted),
-            PendingTasks = projectTasks.Count(t => t.Status == TaskStatus.Pending),
-            InProgressTasks = projectTasks.Count(t => t.Status == TaskStatus.InProgress),
-            BlockedTasks = projectTasks.Count(t => t.Status == TaskStatus.Blocked),
+            PendingTasks = projectTasks.Count(t => t.Status == TaskStatusModel.Pending),
+            InProgressTasks = projectTasks.Count(t => t.Status == TaskStatusModel.InProgress),
+            BlockedTasks = projectTasks.Count(t => t.Status == TaskStatusModel.Blocked),
             CompletionPercentage = projectTasks.Count > 0 
                 ? (int)((double)projectTasks.Count(t => t.IsCompleted) / projectTasks.Count * 100)
                 : 0
@@ -301,7 +303,7 @@
             var response = await HttpClient.PostAsync($"/api/sync/project/{projectId}", null);
             if (response.IsSuccessStatusCode)
             {
-                await Task.Delay(1000); // Wait for sync to complete
+                await System.Threading.Tasks.Task.Delay(1000); // Wait for sync to complete
                 await LoadTasks();
                 CalculateStats();
             }
@@ -322,7 +324,7 @@
         try
         {
             await TaskService.SyncAllProjectsAsync();
-            await Task.Delay(2000); // Wait for sync to complete
+            await System.Threading.Tasks.Task.Delay(2000); // Wait for sync to complete
             await LoadTasks();
             CalculateStats();
         }

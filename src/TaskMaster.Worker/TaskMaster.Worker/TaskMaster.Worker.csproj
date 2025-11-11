@@ -16,4 +16,10 @@
   <ItemGroup>
     <ProjectReference Include="..\..\TaskMaster.Core\TaskMaster.Core\TaskMaster.Core.csproj" />
   </ItemGroup>
+
+  <!-- Excluir appsettings.json do publish para evitar conflitos quando referenciado por outros projetos -->
+  <ItemGroup>
+    <Content Remove="appsettings.json" />
+    <Content Remove="appsettings.*.json" />
+  </ItemGroup>
 </Project>

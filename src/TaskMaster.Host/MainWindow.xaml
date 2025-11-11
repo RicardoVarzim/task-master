@@ -22,9 +22,9 @@
         </StackPanel>
 
         <!-- Services Status -->
-        <StackPanel Grid.Row="1" Spacing="15">
+        <StackPanel Grid.Row="1">
             <!-- API Status -->
-            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="5" Padding="15">
+            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="5" Padding="15" Margin="0,0,0,15">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
@@ -42,7 +42,7 @@
             </Border>
 
             <!-- Worker Status -->
-            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="5" Padding="15">
+            <Border BorderBrush="#E0E0E0" BorderThickness="1" CornerRadius="5" Padding="15" Margin="0,0,0,15">
                 <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>

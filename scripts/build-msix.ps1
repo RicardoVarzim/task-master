@@ -3,7 +3,8 @@
 
 param(
     [string]$Configuration = "Release",
-    [string]$OutputPath = ".\dist\msix"
+    [string]$OutputPath = ".\dist\msix",
+    [switch]$SkipMSIX = $false
 )
 
 $ErrorActionPreference = "Stop"
@@ -69,17 +70,58 @@ if (-not (Test-Path $certPath)) {
 
 # Encontrar MakeAppx.exe
 Write-Host "`n5. Procurando MakeAppx.exe..." -ForegroundColor Yellow
-$sdkPath = "${env:ProgramFiles(x86)}\Windows Kits\10\bin"
-$makeAppx = Get-ChildItem -Path $sdkPath -Filter "MakeAppx.exe" -Recurse -ErrorAction SilentlyContinue | 
-    Sort-Object FullName -Descending | 
-    Select-Object -First 1
+
+# Tentar múltiplas localizações
+$sdkPaths = @(
+    "${env:ProgramFiles(x86)}\Windows Kits\10\bin",
+    "${env:ProgramFiles}\Windows Kits\10\bin",
+    "${env:ProgramFiles(x86)}\Microsoft SDKs\Windows\v10.0A\bin"
+)
+
+$makeAppx = $null
+$sdkPath = $null
+
+foreach ($path in $sdkPaths) {
+    if (Test-Path $path) {
+        $found = Get-ChildItem -Path $path -Filter "MakeAppx.exe" -Recurse -ErrorAction SilentlyContinue | 
+            Sort-Object FullName -Descending | 
+            Select-Object -First 1
+        if ($found) {
+            $makeAppx = $found
+            $sdkPath = $path
+            break
+        }
+    }
+}
 
 if (-not $makeAppx) {
-    Write-Host "ERRO: MakeAppx.exe não encontrado! Instale o Windows SDK." -ForegroundColor Red
-    exit 1
+    Write-Host "AVISO: MakeAppx.exe não encontrado!" -ForegroundColor Yellow
+    Write-Host "O Windows SDK não está instalado ou não está no caminho esperado." -ForegroundColor Yellow
+    Write-Host "`nOpções:" -ForegroundColor Yellow
+    Write-Host "  1. Instale o Windows 10/11 SDK: https://developer.microsoft.com/en-us/windows/downloads/windows-sdk/" -ForegroundColor White
+    Write-Host "  2. Execute com -SkipMSIX para apenas publicar a aplicação sem criar o pacote MSIX" -ForegroundColor White
+    Write-Host "`nA aplicação foi publicada em: $packageDir" -ForegroundColor Green
+    
+    if (-not $SkipMSIX) {
+        Write-Host "`nPara continuar sem criar o pacote MSIX, execute:" -ForegroundColor Yellow
+        Write-Host "  .\scripts\build-msix.ps1 -SkipMSIX" -ForegroundColor White
+        exit 1
+    } else {
+        Write-Host "`nContinuando sem criar pacote MSIX..." -ForegroundColor Yellow
+        Write-Host "`n=== Concluído ===" -ForegroundColor Cyan
+        Write-Host "Aplicação publicada em: $packageDir" -ForegroundColor Green
+        exit 0
+    }
 }
 
 Write-Host "MakeAppx encontrado: $($makeAppx.FullName)" -ForegroundColor Green
+
+if ($SkipMSIX) {
+    Write-Host "`nPulando criação do pacote MSIX (parâmetro -SkipMSIX)" -ForegroundColor Yellow
+    Write-Host "`n=== Concluído ===" -ForegroundColor Cyan
+    Write-Host "Aplicação publicada em: $packageDir" -ForegroundColor Green
+    exit 0
+}
 
 # Criar pacote MSIX
 Write-Host "`n6. Criando pacote MSIX..." -ForegroundColor Yellow

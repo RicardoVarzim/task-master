@@ -416,6 +416,8 @@ bld/
 [Ll]ogs/
 
 # .NET Core / .NET 8 specific
+# Note: These are already covered by [Bb]in/ and [Oo]bj/ patterns above
+# but keeping for clarity
 *.dll
 *.exe
 *.pdb
@@ -425,6 +427,9 @@ bld/
 *.runtimeconfig.dev.json
 project.assets.json
 project.nuget.cache
+*.nuget.dgspec.json
+*.nuget.g.props
+*.nuget.g.targets
 *.nuget.props
 *.nuget.targets
 
@@ -440,6 +445,11 @@ project.nuget.cache
 *.appxbundle
 AppPackages/
 BundleArtifacts/
+
+# Build output directories
+dist/
+publish/
+out/
 
 # Test results
 TestResults/
@@ -471,4 +481,9 @@ Thumbs.db
 appsettings.Production.json
 appsettings.Local.json
 *.secrets.json
+
+# MSIX build artifacts and certificates
+*.pfx
+*.cer
+TaskMasterDemo.*
 

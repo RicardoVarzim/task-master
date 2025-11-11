@@ -1,7 +1,7 @@
 @using TaskMaster.Core.Models
 @using TaskModel = TaskMaster.Core.Models.Task
 
-<div class="card mb-3 @(Task.IsCompleted ? "border-success" : "")" style="cursor: pointer;" @onclick="() => OnTaskClick?.Invoke(Task)">
+<div class="card mb-3 @(Task.IsCompleted ? "border-success" : "")" style="cursor: pointer;" @onclick="() => OnTaskClick.InvokeAsync(Task)">
     <div class="card-body">
         <div class="d-flex justify-content-between align-items-start mb-2">
             <div class="flex-grow-1">
@@ -42,7 +42,7 @@
                 <input type="checkbox" 
                        class="form-check-input" 
                        checked="@Task.IsCompleted"
-                       @onchange="(e) => OnToggleComplete?.Invoke(Task, (bool)e.Value!)"
+                       @onchange="(e) => OnToggleComplete.InvokeAsync((Task, (bool)e.Value!))"
                        @onclick:stopPropagation="true" />
             </div>
         </div>
