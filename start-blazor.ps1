@@ -10,62 +10,106 @@ try {
     
     # Try multiple methods to find processes using the port
     $connections = @()
+    $pidsToStop = @()
     
-    # Method 1: Get-NetTCPConnection
-    $connections += Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Where-Object {$_.State -eq "Listen"}
+    # Method 1: Get-NetTCPConnection - check ALL states, not just Listen
+    $allConnections = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
+    if ($allConnections) {
+        $pidsToStop += $allConnections | ForEach-Object { $_.OwningProcess } | Select-Object -Unique
+        $connections += $allConnections
+    }
     
-    # Method 2: netstat (fallback)
-    if (-not $connections) {
-        $netstatOutput = netstat -ano | Select-String ":$port " | Select-String "LISTENING"
-        if ($netstatOutput) {
-            $pids = $netstatOutput | ForEach-Object { ($_ -split '\s+')[-1] } | Select-Object -Unique
-            foreach ($pid in $pids) {
+    # Method 2: netstat (fallback) - check all states
+    $netstatOutput = netstat -ano | Select-String ":$port "
+    if ($netstatOutput) {
+        $pids = $netstatOutput | ForEach-Object { 
+            $parts = $_ -split '\s+'
+            $parts[-1]
+        } | Select-Object -Unique
+        foreach ($pid in $pids) {
+            if ($pid -match '^\d+$') {
                 try {
                     $proc = Get-Process -Id $pid -ErrorAction SilentlyContinue
                     if ($proc) {
-                        $connections += [PSCustomObject]@{OwningProcess = $pid}
+                        $pidsToStop += $pid
+                        if (-not ($connections | Where-Object { $_.OwningProcess -eq $pid })) {
+                            $connections += [PSCustomObject]@{OwningProcess = $pid}
+                        }
                     }
                 } catch {}
             }
         }
     }
+    
+    # Method 3: Check for dotnet processes that might be using the port
+    $dotnetProcesses = Get-Process dotnet -ErrorAction SilentlyContinue
+    foreach ($proc in $dotnetProcesses) {
+        try {
+            $cmdLine = (Get-CimInstance Win32_Process -Filter "ProcessId = $($proc.Id)" -ErrorAction SilentlyContinue).CommandLine
+            if ($cmdLine -like "*TaskMaster.Blazor*" -or $cmdLine -like "*5001*") {
+                Write-Host "Found dotnet process (PID: $($proc.Id)) that might be using port $port" -ForegroundColor Yellow
+                $pidsToStop += $proc.Id
+            }
+        } catch {
+            # Ignore errors when accessing process information
+        }
+    }
+    
+    $pidsToStop = $pidsToStop | Select-Object -Unique
 
-    if ($connections) {
-        Write-Host "Warning: Port $port is in use. Stopping processes..." -ForegroundColor Yellow
-        foreach ($conn in $connections) {
-            $pid = $conn.OwningProcess
+    if ($pidsToStop.Count -gt 0) {
+        Write-Host "Warning: Port $port is in use or related processes found. Stopping processes..." -ForegroundColor Yellow
+        foreach ($pid in $pidsToStop) {
             try {
                 $process = Get-Process -Id $pid -ErrorAction SilentlyContinue
                 if ($process) {
-                    Write-Host "Stopping process $($process.ProcessName) (PID: $pid) using port $port" -ForegroundColor Cyan
+                    Write-Host "Stopping process $($process.ProcessName) (PID: $pid)" -ForegroundColor Cyan
                     Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
                 }
             } catch {
-                Write-Host "Could not stop process PID $pid: $_" -ForegroundColor Red
+                Write-Host "Could not stop process PID $pid : $($_)" -ForegroundColor Red
             }
         }
         Start-Sleep -Seconds 3
         
-        # Verify port is free
-        $stillInUse = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue | Where-Object {$_.State -eq "Listen"}
+        # Verify port is free - check all states
+        $stillInUse = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
         if ($stillInUse) {
             Write-Host "Warning: Port $port is still in use. You may need to stop processes manually." -ForegroundColor Red
             Write-Host "Run: .\stop-blazor.ps1" -ForegroundColor Yellow
+            exit 1
+        } else {
+            Write-Host "Port $port is now available." -ForegroundColor Green
         }
     } else {
         Write-Host "Port $port is available." -ForegroundColor Green
     }
 
-    # Check if there are existing processes running
+    # Check if there are existing processes running (additional check)
     $existingProcesses = Get-Process | Where-Object {
         ($_.ProcessName -like "*TaskMaster.Blazor*") -or 
         ($_.ProcessName -eq "dotnet" -and $_.Path -like "*task-master*TaskMaster.Blazor*")
     } -ErrorAction SilentlyContinue
 
     if ($existingProcesses) {
-        Write-Host "Warning: Existing processes found. Stopping..." -ForegroundColor Yellow
-        $existingProcesses | Stop-Process -Force -ErrorAction SilentlyContinue
+        Write-Host "Warning: Additional existing processes found. Stopping..." -ForegroundColor Yellow
+        foreach ($proc in $existingProcesses) {
+            try {
+                Write-Host "Stopping process $($proc.ProcessName) (PID: $($proc.Id))" -ForegroundColor Cyan
+                Stop-Process -Id $proc.Id -Force -ErrorAction SilentlyContinue
+            } catch {
+                Write-Host "Could not stop process PID $($proc.Id) : $($_)" -ForegroundColor Red
+            }
+        }
         Start-Sleep -Seconds 2
+        
+        # Final check - verify port is free before starting
+        $finalCheck = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
+        if ($finalCheck) {
+            Write-Host "Error: Port $port is still in use after cleanup attempts." -ForegroundColor Red
+            Write-Host "Please run: .\stop-blazor.ps1" -ForegroundColor Yellow
+            exit 1
+        }
     }
 
     Write-Host "Blazor will be available at: http://localhost:5001" -ForegroundColor Yellow

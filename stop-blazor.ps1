@@ -32,7 +32,7 @@ try {
                     Stop-Process -Id $pid -Force -ErrorAction SilentlyContinue
                 }
             } catch {
-                Write-Host "Could not stop process PID $pid: $_" -ForegroundColor Red
+                Write-Host "Could not stop process PID $pid : $($_)" -ForegroundColor Red
             }
         }
     }
