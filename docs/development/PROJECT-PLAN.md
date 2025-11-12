@@ -292,8 +292,8 @@ Task Master é uma aplicação desktop local-first que monitoriza ficheiros Mark
 - [ ] Migração de dados entre versões (pendente)
 
 #### 7.3 Documentação de Utilizador
-- [x] Guia de início rápido (`docs/QUICK-START.md`)
-- [x] Guia de empacotamento MSIX (`docs/MSIX-PACKAGING.md`)
+- [x] Guia de início rápido (`docs/guides/QUICK-START.md`)
+- [x] Guia de empacotamento MSIX (`docs/deployment/MSIX-PACKAGING.md`)
 - [x] Documentação de ícones (`src/TaskMaster.Host/Assets/README-ICONS.md`)
 - [ ] Manual completo de utilizador (pendente)
 - [ ] FAQ (pendente)

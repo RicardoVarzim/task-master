@@ -104,8 +104,8 @@ A versão demo do Task Master está pronta para distribuição! Esta versão inc
 ## Suporte
 
 Para questões sobre a versão demo:
-- Consulte `docs/QUICK-START.md` para uso básico
-- Consulte `docs/MSIX-PACKAGING.md` para detalhes técnicos
+- Consulte `docs/guides/QUICK-START.md` para uso básico
+- Consulte `docs/deployment/MSIX-PACKAGING.md` para detalhes técnicos
 - Verifique logs do Windows Event Viewer em caso de problemas
 
 ## Changelog

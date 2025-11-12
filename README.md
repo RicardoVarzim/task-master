@@ -39,8 +39,10 @@ task-master/
 ├── tests/
 │   └── TaskMaster.Core.Tests/   # Testes unitários
 └── docs/
-    ├── CONTEXT.md               # Diretrizes de documentação
-    └── PROJECT-PLAN.md          # Plano detalhado do projeto
+    ├── CONTEXT.md                    # Diretrizes de documentação
+    ├── guides/                       # Guias de utilização e testes
+    ├── development/                  # Documentação de desenvolvimento
+    └── deployment/                   # Documentação de deployment
 ```
 
 ## Como Executar
@@ -71,11 +73,14 @@ A base de dados SQLite é criada automaticamente em:
 ## Documentação
 
 - **[CONTEXT.md](docs/CONTEXT.md)**: Diretrizes de documentação e contexto do projeto
-- **[PROJECT-PLAN.md](docs/PROJECT-PLAN.md)**: Plano detalhado de implementação com fases e tarefas
+- **[PROJECT-PLAN.md](docs/development/PROJECT-PLAN.md)**: Plano detalhado de implementação com fases e tarefas
+- **[QUICK-START.md](docs/guides/QUICK-START.md)**: Guia de início rápido
+- **[TEST-GUIDE.md](docs/guides/TEST-GUIDE.md)**: Guia de testes
+- **[MSIX-PACKAGING.md](docs/deployment/MSIX-PACKAGING.md)**: Guia de empacotamento MSIX
 
 ## Próximos Passos
 
-Consulte o [PROJECT-PLAN.md](docs/PROJECT-PLAN.md) para o plano completo. Prioridades imediatas:
+Consulte o [PROJECT-PLAN.md](docs/development/PROJECT-PLAN.md) para o plano completo. Prioridades imediatas:
 
 1. Completar melhorias no Worker Service (tratamento de erros, configuração)
 2. Criar interface completa de tarefas no Blazor

@@ -6,17 +6,23 @@ Task Master é uma aplicação desktop local-first que monitoriza ficheiros Mark
 
 ## Estrutura de Organização da Documentação
 
-### Pasta `.docs`
+### Pasta `docs/`
 
 A pasta `docs/` contém toda a documentação do projeto, organizada da seguinte forma:
 
 ```
 docs/
-├── CONTEXT.md              # Este ficheiro - diretrizes de documentação
-├── PROJECT-PLAN.md         # Plano detalhado do projeto
-├── ARCHITECTURE.md         # Documentação de arquitetura (quando criada)
-├── API.md                  # Documentação da API (quando criada)
-└── [outros documentos]     # Outros documentos conforme necessário
+├── CONTEXT.md                    # Este ficheiro - diretrizes de documentação
+├── guides/                        # Guias de utilização e testes
+│   ├── QUICK-START.md            # Guia de início rápido
+│   └── TEST-GUIDE.md             # Guia de testes
+├── development/                  # Documentação de desenvolvimento
+│   ├── PROJECT-PLAN.md           # Plano detalhado do projeto
+│   └── task-master-implementation-plan.md  # Plano de implementação
+├── deployment/                   # Documentação de deployment e empacotamento
+│   ├── MSIX-PACKAGING.md         # Guia de empacotamento MSIX
+│   └── DEMO-RELEASE.md           # Guia de release demo
+└── [outros documentos]           # Outros documentos conforme necessário
 ```
 
 ### Regras de Documentação
@@ -34,7 +40,7 @@ docs/
    - Documentar decisões arquiteturais importantes
 
 3. **Checklists e Procedimentos**:
-   - Manter o `PROJECT-PLAN.md` atualizado com o progresso
+   - Manter o `development/PROJECT-PLAN.md` atualizado com o progresso
    - Documentar problemas encontrados e soluções
    - Manter histórico de mudanças importantes
 
@@ -66,7 +72,10 @@ task-master/
 ├── tests/
 │   └── TaskMaster.Core.Tests/    # Testes unitários
 └── docs/
-    └── CONTEXT.md                # Este ficheiro
+    ├── CONTEXT.md                # Este ficheiro
+    ├── guides/                   # Guias de utilização
+    ├── development/              # Documentação de desenvolvimento
+    └── deployment/               # Documentação de deployment
 ```
 
 ## Convenções de Código
@@ -78,5 +87,5 @@ task-master/
 
 ## Próximos Passos
 
-Consulte `PROJECT-PLAN.md` para o plano detalhado de implementação.
+Consulte `development/PROJECT-PLAN.md` para o plano detalhado de implementação.
 

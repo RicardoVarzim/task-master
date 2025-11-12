@@ -16,12 +16,12 @@
 
 **Terminal 1 - Start API:**
 ```powershell
-.\start-api.ps1
+.\scripts\start-api.ps1
 ```
 
 **Terminal 2 - Start Blazor:**
 ```powershell
-.\start-blazor.ps1
+.\scripts\start-blazor.ps1
 ```
 
 **Note:** Scripts automatically restore the original directory even if they fail.
@@ -133,9 +133,9 @@ Se você receber um erro dizendo que o arquivo está sendo usado por outro proce
 
 **Option 1 - Use stop scripts:**
 ```powershell
-.\stop-api.ps1      # Stop the API
-.\stop-blazor.ps1   # Stop the Blazor
-.\stop-all.ps1      # Stop all processes
+.\scripts\stop-api.ps1      # Stop the API
+.\scripts\stop-blazor.ps1   # Stop the Blazor
+.\scripts\stop-all.ps1      # Stop all processes
 ```
 
 **Option 2 - Manual:**

@@ -1,11 +1,11 @@
-# Script to start Task Master API
+# Script to start Task Master Blazor
 $originalDirectory = Get-Location
 
 try {
-    Write-Host "Starting Task Master API..." -ForegroundColor Green
+    Write-Host "Starting Task Master Blazor..." -ForegroundColor Green
 
-    # Check if port 5000 is in use
-    $port = 5000
+    # Check if port 5001 is in use
+    $port = 5001
     Write-Host "Checking if port $port is in use..." -ForegroundColor Gray
     
     # Try multiple methods to find processes using the port
@@ -46,7 +46,7 @@ try {
     foreach ($proc in $dotnetProcesses) {
         try {
             $cmdLine = (Get-CimInstance Win32_Process -Filter "ProcessId = $($proc.Id)" -ErrorAction SilentlyContinue).CommandLine
-            if ($cmdLine -like "*TaskMaster.API*" -or $cmdLine -like "*5000*") {
+            if ($cmdLine -like "*TaskMaster.Blazor*" -or $cmdLine -like "*5001*") {
                 Write-Host "Found dotnet process (PID: $($proc.Id)) that might be using port $port" -ForegroundColor Yellow
                 $pidsToStop += $proc.Id
             }
@@ -76,7 +76,7 @@ try {
         $stillInUse = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
         if ($stillInUse) {
             Write-Host "Warning: Port $port is still in use. You may need to stop processes manually." -ForegroundColor Red
-            Write-Host "Run: .\stop-api.ps1" -ForegroundColor Yellow
+            Write-Host "Run: .\scripts\stop-blazor.ps1" -ForegroundColor Yellow
             exit 1
         } else {
             Write-Host "Port $port is now available." -ForegroundColor Green
@@ -87,8 +87,8 @@ try {
 
     # Check if there are existing processes running (additional check)
     $existingProcesses = Get-Process | Where-Object {
-        ($_.ProcessName -like "*TaskMaster.API*") -or 
-        ($_.ProcessName -eq "dotnet" -and $_.Path -like "*task-master*TaskMaster.API*")
+        ($_.ProcessName -like "*TaskMaster.Blazor*") -or 
+        ($_.ProcessName -eq "dotnet" -and $_.Path -like "*task-master*TaskMaster.Blazor*")
     } -ErrorAction SilentlyContinue
 
     if ($existingProcesses) {
@@ -107,16 +107,17 @@ try {
         $finalCheck = Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue
         if ($finalCheck) {
             Write-Host "Error: Port $port is still in use after cleanup attempts." -ForegroundColor Red
-            Write-Host "Please run: .\stop-api.ps1" -ForegroundColor Yellow
+            Write-Host "Please run: .\scripts\stop-blazor.ps1" -ForegroundColor Yellow
             exit 1
         }
     }
 
-    Write-Host "API will be available at: http://localhost:5000" -ForegroundColor Yellow
-    Write-Host "Swagger will be available at: http://localhost:5000/swagger" -ForegroundColor Yellow
+    Write-Host "Blazor will be available at: http://localhost:5001" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "Make sure the API is running on port 5000!" -ForegroundColor Cyan
     Write-Host ""
     
-    Set-Location src\TaskMaster.API\TaskMaster.API
+    Set-Location src\TaskMaster.Blazor\TaskMaster.Blazor
     dotnet run
 }
 finally {
